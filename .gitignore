@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.vite/
+
+# Local environment files (commit an .env.example if variables are added)
+.env
+.env.*
+!.env.example
+
+# Local tooling and OS files
+.DS_Store
+*.log
+.vercel/
+.netlify/
