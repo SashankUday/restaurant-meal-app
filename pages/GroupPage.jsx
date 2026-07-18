@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAppData } from "../context/AppDataContext.jsx";
-import { EMPTY_FILTERS } from "../lib/constants.js";
+import { EMPTY_FILTERS, formatPrice } from "../lib/constants.js";
 import { findGroupMatches, tokenizeQuery } from "../lib/search.js";
 import { ErrorState, LoadingState } from "../components/AsyncState.jsx";
 import DishModal from "../components/DishModal.jsx";
@@ -34,7 +34,7 @@ function GroupResultCard({ result, onOpenDish }) {
                 {matches.slice(0, 3).map(({ dish }) => (
                   <button type="button" key={dish.id} onClick={() => onOpenDish(dish.id)}>
                     <strong>{dish.name}</strong>
-                    <span>{dish.score.toFixed(1)} · £{dish.price.toFixed(2)}</span>
+                    <span>{dish.score.toFixed(1)} · {formatPrice(dish.price)}</span>
                   </button>
                 ))}
               </div>

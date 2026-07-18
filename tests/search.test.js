@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { findGroupMatches, matchDish, passesFilters, tokenizeQuery } from "../lib/search.js";
+import { formatPrice } from "../lib/constants.js";
+import { findGroupMatches, matchDish, passesFilters, sortDishesByPrice, tokenizeQuery } from "../lib/search.js";
 
 const restaurants = [
   { id: 1, name: "Coconut Tree", score: 8.5 },
@@ -34,23 +35,35 @@ test("a multi-descriptor query requires every meaningful token", () => {
   assert.equal(matchDish(dishes[0], "sweet and comforting").matches, false);
 });
 
-test("rich metadata supports natural-language nutrition and negation constraints", () => {
+test("kept nutrition and search fields support calorie, protein, price, and negation constraints", () => {
   const richDish = {
     ...dishes[1],
     price: 14,
+    description: "A rich and comforting broth.",
+    ingredients: ["rice", "broth"],
+    mealOccasions: ["lunch"],
+    hiddenSearchTokens: ["high-protein"],
     nutrition: { calories_kcal: 650, protein_g: 38 },
-    sensoryProfile: { mouthfeel: ["comforting"], flavours: ["rich"], spice: ["mild"] },
-    ingredientProfile: { sauces: ["broth"] },
-    derivedFeatures: { protein_score: "high" },
   };
 
   assert.equal(matchDish(
     richDish,
-    "I want a comforting high-protein meal under 700 calories that isn't too spicy and has a rich broth",
+    "I want a comforting high-protein meal under 700 calories with at least 30g protein that isn't too spicy and has a rich broth",
   ).matches, true);
   assert.equal(matchDish(richDish, "under 600 calories").matches, false);
+  assert.equal(matchDish(richDish, "at least 30g protein").matches, true);
+  assert.equal(matchDish(richDish, "at least 40g protein").matches, false);
   assert.equal(matchDish(richDish, "under £15").matches, true);
   assert.equal(matchDish(richDish, "under £12").matches, false);
+});
+
+test("unpriced dishes are excluded from price constraints and price sorting", () => {
+  const unpricedDish = { ...dishes[0], id: 4, price: null };
+
+  assert.equal(matchDish(unpricedDish, "under £100").matches, false);
+  assert.deepEqual(sortDishesByPrice([unpricedDish, dishes[2], dishes[1]]).map((dish) => dish.id), [2, 3]);
+  assert.equal(formatPrice(null), "Price unavailable");
+  assert.equal(formatPrice(0), "£0.00");
 });
 
 test("diet and allergen filters hide unsafe results", () => {

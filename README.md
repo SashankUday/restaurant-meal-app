@@ -1,6 +1,6 @@
 # Plate
 
-Plate is a responsive React and Supabase app for discovering, rating, and remembering individual restaurant dishes in Oxford. It supports natural-language craving search, comprehensive dish information, restaurant menus, group matching, dietary and allergen filters, a restaurant map, lightweight accounts, private meal history, and photo-backed meal logs.
+Plate is a responsive React and Supabase app for discovering, rating, and remembering individual restaurant dishes in Oxford. It supports natural-language craving search, focused dish information, restaurant menus, group matching, dietary and allergen filters, a restaurant map, lightweight accounts, private meal history, and photo-backed meal logs.
 
 ## Run locally
 
@@ -44,7 +44,7 @@ For provider-specific steps, rollback guidance, and a release checklist, see [DE
 
 ## Updating restaurant and dish data
 
-Catalogue data lives in Supabase, so a data-only update appears on the website without rebuilding or redeploying the React app. Use the source tables (`restaurants`, `dishes`, `dish_price_history`, `dish_media`, and `dish_relationships`) rather than editing the public catalogue views.
+Catalogue data lives in Supabase, so a data-only update appears on the website without rebuilding or redeploying the React app. Maintain restaurant facts in `restaurants` and dish facts in `dishes`; do not edit the public catalogue views. Dish prices are nullable: use `NULL` when no reliable price is supplied. The UI labels those dishes “Price unavailable” and omits them from price constraints and price sorting.
 
 Begin with the complete [dish data template](templates/plate-dish-data-template.yaml). For the field map, safe update sequence, provenance rules, and ready-to-adapt SQL examples, see [CATALOG_DATA_GUIDE.md](CATALOG_DATA_GUIDE.md).
 
@@ -73,7 +73,8 @@ Begin with the complete [dish data template](templates/plate-dish-data-template.
 - Public browsing uses safe catalogue views. Row Level Security limits profiles, rating rows, history, and private photo metadata to `auth.uid()`. Meal photos are stored in a private `meal-photos` bucket under a per-user path.
 - The interim account model creates an anonymous Supabase Auth identity and associates the entered email with its UUID. The email is held locally to keep the UI signed in. There is no email verification, password, cross-device recovery, or safe account switching until magic-link auth is added.
 - Because anonymous identities cannot be recovered after browser storage is cleared, this account model is suitable for the requested interim phase, not a final authentication system. Add CAPTCHA/Turnstile and abuse controls before broad public launch.
-- Search splits queries into meaningful tokens, ignores conversational filler, and searches descriptions, ingredients, sensory/ingredient profiles, derived features and hidden search descriptors. Calorie, protein and price constraints plus simple exclusions are evaluated against structured fields. User-added rating tags are included in the public search tag index without exposing private comments or history.
+- Search splits queries into meaningful tokens, ignores conversational filler, and searches dish/restaurant names, chain and branch names, areas, cuisines, descriptions, tags, diets, allergens, ingredients, meal occasions, and human-reviewed hidden search tokens. Calorie and protein constraints read the kept `nutrition` JSON, while price constraints use nullable `dishes.price`; simple exclusions are evaluated against the same searchable fields. User-added rating tags are included in the public search tag index without exposing private comments or history.
+- The public catalogue keeps concise descriptions, nutrition, ingredients, dietary/allergen details, availability, provenance, images, and search tokens. Metadata removed by the simplification migration remains recoverable in the restricted `archive` schema and is not served to the browser.
 - Group search requires at least one eligible dish per query at the same restaurant. Dietary and allergen filters are applied before matching. When there is no complete result, the closest partial restaurants explicitly label missing queries.
 - Selected photos must be JPEG, PNG, or WebP, are limited to six per meal and 15 MB at selection, and are resized and compressed in the browser before a storage upload capped at 5 MB.
 - The map uses Leaflet with OpenStreetMap tiles. Restaurant coordinates are stored in the database; the app does not geocode or request the user's location at runtime.

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { formatPrice } from "../lib/constants.js";
 import PlateScore from "./PlateScore.jsx";
 
 export default function DishCard({ dish, onOpen }) {
@@ -31,6 +32,7 @@ export default function DishCard({ dish, onOpen }) {
             <h3 className="dish-name">{dish.name}</h3>
             <p className="dish-where">
               <Link to={`/restaurant/${dish.restaurantId}`} onClick={(event) => event.stopPropagation()}>{dish.restaurantName}</Link>
+              {dish.branchName && dish.branchName !== dish.restaurantName ? ` · ${dish.branchName}` : ""}
               {` · ${dish.area}`}
             </p>
           </div>
@@ -38,12 +40,12 @@ export default function DishCard({ dish, onOpen }) {
         </div>
         <p className="dish-desc">{dish.shortDescription || dish.description}</p>
         <div className="card-foot">
-          <span className="price">£{dish.price.toFixed(2)}</span>
+          <span className="price">{formatPrice(dish.price)}</span>
           <span className="count">{dish.ratingCount.toLocaleString()} ratings</span>
         </div>
         <div className="tag-row">
           {topTags.map(([tag]) => <span key={tag} className="tag">{tag}</span>)}
-          {dish.dietaryFlags.slice(0, 3).map((diet) => <span key={diet} className="tag tag-diet">{diet}</span>)}
+          {dish.diets.slice(0, 3).map((diet) => <span key={diet} className="tag tag-diet">{diet}</span>)}
         </div>
       </div>
     </article>

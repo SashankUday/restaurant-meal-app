@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAppData } from "../context/AppDataContext.jsx";
 import { EMPTY_FILTERS } from "../lib/constants.js";
-import { matchDish, passesFilters } from "../lib/search.js";
+import { matchDish, passesFilters, sortDishesByPrice } from "../lib/search.js";
 import { ErrorState, LoadingState } from "../components/AsyncState.jsx";
 import DishCard from "../components/DishCard.jsx";
 import DishModal from "../components/DishModal.jsx";
@@ -21,12 +21,17 @@ export default function HomePage() {
   const organicResults = useMemo(() => {
     const results = dishes.filter((dish) => !dish.sponsored && passesFilters(dish, filters) && matchDish(dish, query).matches);
     if (sort === "top") results.sort((a, b) => b.score - a.score || b.ratingCount - a.ratingCount);
-    if (sort === "price") results.sort((a, b) => a.price - b.price || b.score - a.score);
+    if (sort === "price") return sortDishesByPrice(results);
     if (sort === "count") results.sort((a, b) => b.ratingCount - a.ratingCount || b.score - a.score);
     return results;
   }, [dishes, filters, query, sort]);
 
-  const sponsored = dishes.find((dish) => dish.sponsored && passesFilters(dish, filters) && matchDish(dish, query).matches);
+  const sponsored = dishes.find((dish) => (
+    dish.sponsored
+    && (sort !== "price" || dish.price !== null)
+    && passesFilters(dish, filters)
+    && matchDish(dish, query).matches
+  ));
   const activeFilters = filters.diets.length + filters.allergens.length;
   const openDish = dishes.find((dish) => dish.id === openId);
 
