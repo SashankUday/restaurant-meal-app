@@ -36,14 +36,14 @@ export default function DishCard({ dish, onOpen }) {
           </div>
           <PlateScore score={dish.score} />
         </div>
-        <p className="dish-desc">{dish.description}</p>
+        <p className="dish-desc">{dish.shortDescription || dish.description}</p>
         <div className="card-foot">
           <span className="price">£{dish.price.toFixed(2)}</span>
           <span className="count">{dish.ratingCount.toLocaleString()} ratings</span>
         </div>
         <div className="tag-row">
           {topTags.map(([tag]) => <span key={tag} className="tag">{tag}</span>)}
-          {dish.diets.map((diet) => <span key={diet} className="tag tag-diet">{diet}</span>)}
+          {dish.dietaryFlags.slice(0, 3).map((diet) => <span key={diet} className="tag tag-diet">{diet}</span>)}
         </div>
       </div>
     </article>

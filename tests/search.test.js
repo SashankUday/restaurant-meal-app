@@ -34,9 +34,32 @@ test("a multi-descriptor query requires every meaningful token", () => {
   assert.equal(matchDish(dishes[0], "sweet and comforting").matches, false);
 });
 
+test("rich metadata supports natural-language nutrition and negation constraints", () => {
+  const richDish = {
+    ...dishes[1],
+    price: 14,
+    nutrition: { calories_kcal: 650, protein_g: 38 },
+    sensoryProfile: { mouthfeel: ["comforting"], flavours: ["rich"], spice: ["mild"] },
+    ingredientProfile: { sauces: ["broth"] },
+    derivedFeatures: { protein_score: "high" },
+  };
+
+  assert.equal(matchDish(
+    richDish,
+    "I want a comforting high-protein meal under 700 calories that isn't too spicy and has a rich broth",
+  ).matches, true);
+  assert.equal(matchDish(richDish, "under 600 calories").matches, false);
+  assert.equal(matchDish(richDish, "under £15").matches, true);
+  assert.equal(matchDish(richDish, "under £12").matches, false);
+});
+
 test("diet and allergen filters hide unsafe results", () => {
   assert.equal(passesFilters(dishes[1], { diets: ["Vegan"], allergens: ["Shellfish"] }), true);
   assert.equal(passesFilters(dishes[0], { diets: [], allergens: ["Shellfish"] }), false);
+  assert.equal(passesFilters(
+    { ...dishes[1], allergenDetails: { may_contain: ["Tree nuts"] } },
+    { diets: [], allergens: ["Tree nuts"] },
+  ), false);
 });
 
 test("group search requires a matching dish for each person", () => {

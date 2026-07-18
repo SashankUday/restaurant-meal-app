@@ -1,4 +1,4 @@
-import { ALLERGENS, DIETS } from "../lib/constants.js";
+import { ALLERGEN_FILTERS, DIETS } from "../lib/constants.js";
 import Chip from "./Chip.jsx";
 
 function toggleValue(values, value) {
@@ -25,7 +25,7 @@ export default function Filters({ filters, onChange }) {
       <div className="filter-group">
         <span className="filter-label">Hide dishes containing</span>
         <div className="chip-row">
-          {ALLERGENS.map((allergen) => (
+          {ALLERGEN_FILTERS.map((allergen) => (
             <Chip
               key={allergen}
               tone="warn"

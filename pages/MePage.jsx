@@ -14,6 +14,7 @@ function formatVisitDate(value) {
 }
 
 function MealHistoryCard({ meal }) {
+  const breakdown = Object.entries(meal.scoreBreakdown).filter(([, value]) => value !== null);
   return (
     <article className="meal-history-card">
       <div className="meal-history-main">
@@ -25,6 +26,12 @@ function MealHistoryCard({ meal }) {
         <PlateScore score={meal.score} />
       </div>
       {meal.comment && <p className="meal-comment">“{meal.comment}”</p>}
+      {(breakdown.length > 0 || meal.wouldOrderAgain !== null) && (
+        <div className="meal-breakdown-row">
+          {breakdown.map(([key, value]) => <span key={key}>{`${key[0].toUpperCase()}${key.slice(1)}`} <strong>{value.toFixed(1)}</strong></span>)}
+          {meal.wouldOrderAgain !== null && <span>Order again <strong>{meal.wouldOrderAgain ? "Yes" : "No"}</strong></span>}
+        </div>
+      )}
       {meal.tags.length > 0 && <div className="tag-row">{meal.tags.map((tag) => <span className="tag" key={tag}>{tag}</span>)}</div>}
       {meal.photos.length > 0 && (
         <div className="history-photo-row">

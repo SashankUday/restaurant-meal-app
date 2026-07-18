@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import DishInformation from "./DishInformation.jsx";
 import MealForm from "./MealForm.jsx";
 import PlateScore from "./PlateScore.jsx";
 
 export default function DishModal({ dish, onClose }) {
   const [mode, setMode] = useState("view");
+  const [viewTab, setViewTab] = useState("overview");
   const sortedTags = Object.entries(dish.tagCounts || {}).sort((a, b) => b[1] - a[1]);
   const maxTagCount = Math.max(1, ...sortedTags.map(([, count]) => Number(count)));
 
@@ -45,27 +47,36 @@ export default function DishModal({ dish, onClose }) {
               <PlateScore score={dish.score} size={72} />
             </div>
 
-            <p className="modal-desc">{dish.description}</p>
-            <div className="modal-meta">
-              <div><span className="meta-label">Price</span><span className="meta-val">£{dish.price.toFixed(2)}</span></div>
-              <div><span className="meta-label">Ratings</span><span className="meta-val">{dish.ratingCount.toLocaleString()}</span></div>
-              <div>
-                <span className="meta-label">Contains</span>
-                <span className="meta-val">{dish.allergens.length ? dish.allergens.join(", ") : "No major allergens listed"}</span>
-              </div>
+            <div className="modal-tabs" role="tablist" aria-label="Dish detail sections">
+              <button type="button" role="tab" aria-selected={viewTab === "overview"} className={viewTab === "overview" ? "modal-tab-on" : ""} onClick={() => setViewTab("overview")}>Overview</button>
+              <button type="button" role="tab" aria-selected={viewTab === "information"} className={viewTab === "information" ? "modal-tab-on" : ""} onClick={() => setViewTab("information")}>Dish information</button>
             </div>
-            <p className="allergen-note">Allergen information is provided by the restaurant. Always confirm with staff before ordering.</p>
 
-            <h3 className="section-label">What diners say</h3>
-            <div className="tag-bars">
-              {sortedTags.map(([tag, count]) => (
-                <div key={tag} className="tag-bar">
-                  <span className="tag-bar-name">{tag}</span>
-                  <div className="tag-bar-track"><div className="tag-bar-fill" style={{ width: `${(Number(count) / maxTagCount) * 100}%` }} /></div>
-                  <span className="tag-bar-n">{Number(count).toLocaleString()}</span>
+            {viewTab === "information" ? <DishInformation dish={dish} /> : (
+              <>
+                <p className="modal-desc">{dish.shortDescription || dish.description}</p>
+                <div className="modal-meta">
+                  <div><span className="meta-label">Price</span><span className="meta-val">£{dish.price.toFixed(2)}</span></div>
+                  <div><span className="meta-label">Ratings</span><span className="meta-val">{dish.ratingCount.toLocaleString()}</span></div>
+                  <div>
+                    <span className="meta-label">Contains</span>
+                    <span className="meta-val">{dish.allergens.length ? dish.allergens.join(", ") : "No major allergens listed"}</span>
+                  </div>
                 </div>
-              ))}
-            </div>
+                <p className="allergen-note">Allergen information is provided by the restaurant. Always confirm with staff before ordering.</p>
+
+                <h3 className="section-label">What diners say</h3>
+                <div className="tag-bars">
+                  {sortedTags.map(([tag, count]) => (
+                    <div key={tag} className="tag-bar">
+                      <span className="tag-bar-name">{tag}</span>
+                      <div className="tag-bar-track"><div className="tag-bar-fill" style={{ width: `${(Number(count) / maxTagCount) * 100}%` }} /></div>
+                      <span className="tag-bar-n">{Number(count).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
             <button className="btn-primary" type="button" onClick={() => setMode("log")}>I ate this — log my meal</button>
           </>
         )}

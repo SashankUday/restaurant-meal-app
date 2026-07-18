@@ -19,6 +19,8 @@ export default function MealForm({ dish, onSaved }) {
   const { user } = useAuth();
   const { refresh } = useAppData();
   const [score, setScore] = useState(null);
+  const [scoreBreakdown, setScoreBreakdown] = useState({ taste: null, value: null, presentation: null, portion: null });
+  const [wouldOrderAgain, setWouldOrderAgain] = useState(null);
   const [tags, setTags] = useState([]);
   const [customTag, setCustomTag] = useState("");
   const [comment, setComment] = useState("");
@@ -73,6 +75,8 @@ export default function MealForm({ dish, onSaved }) {
         comment,
         visitedAt,
         photos: files,
+        scoreBreakdown,
+        wouldOrderAgain,
       });
       await refresh();
       onSaved?.();
@@ -118,6 +122,32 @@ export default function MealForm({ dish, onSaved }) {
               {value}
             </button>
           ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="fieldset-reset">
+        <legend className="section-label">Score breakdown <span className="optional">optional</span></legend>
+        <div className="score-breakdown-grid">
+          {[["taste", "Taste"], ["value", "Value"], ["presentation", "Presentation"], ["portion", "Portion"]].map(([key, label]) => (
+            <label key={key}>
+              <span>{label}</span>
+              <select
+                className="select-input"
+                value={scoreBreakdown[key] ?? ""}
+                onChange={(event) => setScoreBreakdown((current) => ({ ...current, [key]: event.target.value === "" ? null : Number(event.target.value) }))}
+              >
+                <option value="">Not scored</option>
+                {Array.from({ length: 11 }, (_, value) => <option key={value} value={value}>{value}/10</option>)}
+              </select>
+            </label>
+          ))}
+        </div>
+        <div className="repeat-order-field">
+          <span>Would you order it again?</span>
+          <div className="chip-row">
+            <Chip active={wouldOrderAgain === true} onClick={() => setWouldOrderAgain((current) => current === true ? null : true)}>Yes</Chip>
+            <Chip active={wouldOrderAgain === false} onClick={() => setWouldOrderAgain((current) => current === false ? null : false)}>No</Chip>
+          </div>
         </div>
       </fieldset>
 
