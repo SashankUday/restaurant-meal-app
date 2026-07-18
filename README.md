@@ -46,7 +46,7 @@ For provider-specific steps, rollback guidance, and a release checklist, see [DE
 
 Catalogue data lives in Supabase, so a data-only update appears on the website without rebuilding or redeploying the React app. Use the source tables (`restaurants`, `dishes`, `dish_price_history`, `dish_media`, and `dish_relationships`) rather than editing the public catalogue views.
 
-For the field map, safe update sequence, provenance rules, and ready-to-adapt SQL examples, see [CATALOG_DATA_GUIDE.md](CATALOG_DATA_GUIDE.md).
+Begin with the complete [dish data template](templates/plate-dish-data-template.yaml). For the field map, safe update sequence, provenance rules, and ready-to-adapt SQL examples, see [CATALOG_DATA_GUIDE.md](CATALOG_DATA_GUIDE.md).
 
 ## Project layout
 

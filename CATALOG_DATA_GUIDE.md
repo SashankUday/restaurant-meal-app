@@ -2,6 +2,8 @@
 
 Plate treats a **dish** as the public menu item and a **meal** as one user's private visit/rating of that dish. Restaurant and dish catalogue data belongs in Supabase; it should not be hard-coded into the React components.
 
+Start each new record by copying [`templates/plate-dish-data-template.yaml`](templates/plate-dish-data-template.yaml). It contains every editor-supplied, confirmed, derived, system-managed and future field in one checklist. Values marked `REQUIRED` must be populated before publication; values marked `CONFIRM` must be deliberately verified even when the answer is false, none, or not supplied.
+
 Use the Supabase Dashboard **Table Editor** for small edits or **SQL Editor** for repeatable/bulk updates. Catalogue tables intentionally have no public browser write policy, so a visitor cannot change restaurant-supplied information.
 
 ## Where each kind of data lives
@@ -23,11 +25,12 @@ The app reads `dish_catalog` and `restaurant_catalog`, which assemble these tabl
 ## Recommended update workflow
 
 1. Confirm the restaurant and dish IDs before writing anything.
-2. Enter only sourced facts. Leave an unknown scalar as `NULL`, an unknown list as `{}`, and unknown structured metadata as `{}`.
-3. Update the restaurant/dish and its `data_sources` together.
-4. Add a new price-history row instead of overwriting history.
-5. Check the dish in Plate's **Dish information** tab and try a few search phrases.
-6. For allergen or nutrition changes, have the source rechecked before publishing.
+2. Copy the dish template, fill its quality-control and source sections, and resolve every `REQUIRED` or `CONFIRM` marker.
+3. Enter only sourced facts. Leave an unknown scalar as `NULL`, an unknown list as `{}`, and unknown structured metadata as `{}`.
+4. Update the restaurant/dish and its `data_sources` together.
+5. Add a new price-history row instead of overwriting history.
+6. Check the dish in Plate's **Dish information** tab and try a few search phrases.
+7. For allergen or nutrition changes, have the source rechecked before publishing.
 
 Find the record first:
 
@@ -212,4 +215,3 @@ After a new dish is created, add its structured metadata and its initial `dish_p
 - Use `hidden_search_tokens` for concise human-reviewed synonyms and moods. Put scored/generated concepts in `derived_features` with their method and verification date.
 - Never place private review text, personal data, secrets or service-role credentials in a public catalogue field.
 - Leave `dish_embeddings` private. A future pgvector migration can add indexed semantic search without changing the public dish contract.
-

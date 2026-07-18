@@ -1,0 +1,319 @@
+# Plate dish data template
+#
+# Copy this file once per dish and replace every placeholder.
+# Publication rule:
+#   - REQUIRED values must be populated.
+#   - CONFIRM values must be explicitly verified, even when the answer is
+#     false, none, or not supplied.
+#   - SYSTEM-MANAGED values are shown for completeness but must not be typed
+#     into the source tables manually.
+#   - Never estimate nutrition, dietary suitability, or allergens without
+#     recording the method and source under data_sources.
+
+template_version: 1
+record_status: draft # REQUIRED: draft | ready_for_review | approved | archived
+
+quality_control:
+  required_fields_complete: false
+  nutrition_reviewed: false
+  allergen_reviewed: false
+  price_reviewed: false
+  availability_reviewed: false
+  approved_by: null
+  approved_on: null # YYYY-MM-DD
+  notes: null
+
+restaurant:
+  restaurant_id: null # REQUIRED for an existing restaurant; SYSTEM-MANAGED for a new one
+  name: "" # REQUIRED
+  chain_name: null
+  branch_name: null
+  area: "" # REQUIRED, e.g. City Centre
+  cuisine: "" # REQUIRED
+  city: Oxford # REQUIRED
+  country_code: GB # REQUIRED, ISO two-letter code
+  latitude: null # REQUIRED before map publication
+  longitude: null # REQUIRED before map publication
+  delivery_radius_km: null
+  description: "" # REQUIRED
+
+dish:
+  dish_id: null # SYSTEM-MANAGED for new dishes
+  name: "" # REQUIRED
+  menu_section: "" # REQUIRED: starters | mains | sides | desserts | drinks
+  menu_position: null # REQUIRED integer
+  meal_occasions: [] # REQUIRED: breakfast, brunch, lunch, dinner, late-night
+  official_menu_description: "" # REQUIRED
+  short_user_friendly_description: "" # REQUIRED
+  ingredients: [] # REQUIRED; list every restaurant-declared ingredient
+  cooking_methods: [] # REQUIRED, e.g. grilled, steamed, baked, braised
+  serving_style: "" # REQUIRED, e.g. individual, sharing plate, buffet
+  cultural_origin: null
+  historical_notes: null
+
+pricing:
+  currency: GBP # REQUIRED
+  current:
+    eat_in: null # REQUIRED unless the dish is not available for eat-in
+    takeaway: null
+    delivery: null
+    region: Oxford
+    valid_from: null # REQUIRED, YYYY-MM-DD
+  history: []
+  # Add history entries using this shape:
+  # - service_type: eat_in # eat_in | takeaway | delivery
+  #   price: 0.00
+  #   currency: GBP
+  #   region: Oxford
+  #   valid_from: YYYY-MM-DD
+  #   valid_to: null
+  derived: # SYSTEM-MANAGED from current price and verified nutrition
+    price_per_calorie: null
+    price_per_gram_protein: null
+  value_score: null # SYSTEM-MANAGED from user ratings
+
+portion:
+  category: "" # REQUIRED: small | medium | large
+  weight_g: null
+  volume_ml: null
+  piece_count: null
+  estimated_satiety_score: null # 0-10; include method in data_sources
+  suitable_for_sharing: null # CONFIRM true or false
+  people_served: null
+  portion_appearance: null
+
+nutrition:
+  status: not_supplied # REQUIRED: verified | estimated | not_supplied
+  basis: per_serving # REQUIRED
+  calories_kcal: null
+  protein_g: null
+  carbohydrates_g: null
+  sugars_g: null
+  fibre_g: null
+  total_fat_g: null
+  saturated_fat_g: null
+  monounsaturated_fat_g: null
+  polyunsaturated_fat_g: null
+  trans_fat_g: null
+  sodium_mg: null
+  salt_g: null
+  cholesterol_mg: null
+  water_g: null
+  micronutrients:
+    iron_mg: null
+    calcium_mg: null
+    magnesium_mg: null
+    potassium_mg: null
+    zinc_mg: null
+    selenium_ug: null
+    vitamin_a_ug: null
+    vitamin_b1_mg: null
+    vitamin_b2_mg: null
+    vitamin_b3_mg: null
+    vitamin_b5_mg: null
+    vitamin_b6_mg: null
+    vitamin_b7_ug: null
+    vitamin_b9_ug: null
+    vitamin_b12_ug: null
+    vitamin_c_mg: null
+    vitamin_d_ug: null
+    vitamin_e_mg: null
+    vitamin_k_ug: null
+  derived: # Only populate from verified data or a documented estimation method
+    protein_density_g_per_100_kcal: null
+    calorie_density_kcal_per_100_g: null
+    protein_macro_ratio: null
+    carbohydrate_macro_ratio: null
+    fat_macro_ratio: null
+    glycaemic_load_estimate: null
+    healthiness_score: null # 0-10
+
+dietary:
+  status: not_supplied # REQUIRED: restaurant_verified | independently_verified | not_supplied
+  flags: []
+  # Supported flags:
+  # Vegetarian, Vegan, Pescatarian, Halal, Kosher, Jain, Gluten-free,
+  # Dairy-free, Nut-free, Egg-free, Soy-free, Low FODMAP, Keto, Paleo,
+  # Low-carb, High-protein, Low-calorie, Low-sodium, Diabetic-friendly,
+  # Pregnancy-friendly
+  notes: null
+
+allergens:
+  status: not_supplied # REQUIRED: restaurant_verified | independently_verified | not_supplied
+  official_allergens: [] # CONFIRM, including an explicitly verified empty list
+  # UK allergens:
+  # Celery, Cereals containing gluten, Crustaceans, Eggs, Fish, Lupin, Milk,
+  # Molluscs, Mustard, Peanuts, Sesame, Soybeans, Sulphites, Tree nuts
+  may_contain: [] # CONFIRM
+  cross_contamination_risk: null # CONFIRM true or false
+  separate_preparation_available: null # CONFIRM true or false
+  notes: null
+
+sensory_profile:
+  textures: [] # crispy, crunchy, soft, creamy, chewy, fluffy, sticky, gooey, etc.
+  flavours: [] # sweet, salty, sour, bitter, umami, smoky, earthy, tangy, etc.
+  spice: [] # mild, medium, hot, very spicy, numbing, peppery
+  temperatures: [] # hot, cold, chilled, frozen
+  mouthfeel: [] # heavy, light, refreshing, comforting, indulgent
+
+ingredient_profile:
+  primary_protein: null
+  main_carbohydrate: null
+  vegetables: []
+  sauces: []
+  toppings: []
+  garnishes: []
+  contains_alcohol: null # CONFIRM true or false
+  fermented_ingredients: []
+  ultra_processed_ingredients_score: null # 0-10; include method in data_sources
+
+recommendations:
+  similar_dishes: [] # Use dish IDs when known
+  often_ordered_together: []
+  best_side_pairings: []
+  drink_pairings: []
+  seasonal_recommendations: []
+  time_of_day_popularity:
+    breakfast: null
+    brunch: null
+    lunch: null
+    dinner: null
+    late_night: null
+
+search_metadata:
+  hidden_descriptors: [] # REQUIRED; concise, human-reviewed synonyms and moods
+  # Example only: warm, comfort food, soupy, winter, rich, ramen-like
+  negative_descriptors: []
+  search_notes: null
+
+geography_and_availability:
+  available_at_this_branch: null # CONFIRM true or false
+  currently_available: null # REQUIRED true or false
+  seasonal: null # CONFIRM true or false
+  limited_edition: null # CONFIRM true or false
+  breakfast_only: null # CONFIRM true or false
+  lunch_only: null # CONFIRM true or false
+  service_windows: []
+  out_of_stock: null # CONFIRM true or false
+  available_from: null # YYYY-MM-DD
+  available_until: null # YYYY-MM-DD
+  distance_from_user_km: null # SYSTEM-MANAGED at runtime
+
+visual_information:
+  official_image_url: null
+  official_media: []
+  # Add media entries using this shape:
+  # - source_type: official # official | restaurant | press
+  #   url: https://...
+  #   alt_text: ""
+  #   colour_profile: []
+  #   plating_style: null
+  #   sort_order: 0
+  ai_generated_image_tags: []
+  colour_profile: []
+  plating_style: null
+  portion_appearance: null
+
+derived_features:
+  status: not_generated # REQUIRED: verified | generated_unreviewed | not_generated
+  healthiness_score: null # 0-10
+  comfort_score: null # 0-10
+  satiety_score: null # 0-10
+  adventurousness_score: null # 0-10
+  indulgence_score: null # 0-10
+  freshness_score: null # 0-10
+  protein_score: null # 0-10
+  weight_loss_friendliness_score: null # 0-10
+  gym_friendliness_score: null # 0-10
+  hangover_score: null # 0-10
+  sick_day_suitability_score: null # 0-10
+  summer_suitability_score: null # 0-10
+  winter_suitability_score: null # 0-10
+  date_night_suitability_score: null # 0-10
+  model_or_method: null
+  reviewed_by: null
+  reviewed_on: null # YYYY-MM-DD
+
+data_sources:
+  menu:
+    status: not_supplied # REQUIRED: verified | not_supplied
+    source_name: null
+    source_url: null
+    verified_on: null
+    verified_by: null
+  ingredients:
+    status: not_supplied
+    source_name: null
+    source_url: null
+    verified_on: null
+    verified_by: null
+  pricing:
+    status: not_supplied
+    source_name: null
+    source_url: null
+    verified_on: null
+    verified_by: null
+  nutrition:
+    status: not_supplied
+    source_name: null
+    source_url: null
+    estimation_method: null
+    verified_on: null
+    verified_by: null
+  dietary:
+    status: not_supplied
+    source_name: null
+    source_url: null
+    verified_on: null
+    verified_by: null
+  allergens:
+    status: not_supplied
+    source_name: null
+    source_url: null
+    verified_on: null
+    verified_by: null
+  availability:
+    status: not_supplied
+    source_name: null
+    source_url: null
+    verified_on: null
+    verified_by: null
+  media:
+    status: not_supplied
+    source_name: null
+    source_url: null
+    rights_confirmed: false
+    verified_on: null
+    verified_by: null
+  derived_features:
+    status: not_generated
+    method: null
+    source_text_hash: null
+    verified_on: null
+    verified_by: null
+
+user_experience: # SYSTEM-MANAGED; calculated from ratings and meal logs
+  overall_score: null
+  rating_count: 0
+  taste_score: null
+  value_score: null
+  presentation_score: null
+  portion_score: null
+  repeat_order_rate: null
+  favourite_count: 0
+  save_count: 0
+  user_photo_count: 0
+  public_rating_tags: {}
+  private_review_text: not_part_of_public_dish_record
+
+system_metadata: # SYSTEM-MANAGED
+  date_added: null
+  date_last_updated: null
+  sponsored: false
+
+future_vector_features: # FUTURE; keep private and never expose raw embeddings
+  model: null
+  dimensions: null
+  source_text_hash: null
+  embedding: []
+

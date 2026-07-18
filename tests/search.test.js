@@ -60,6 +60,10 @@ test("diet and allergen filters hide unsafe results", () => {
     { ...dishes[1], allergenDetails: { may_contain: ["Tree nuts"] } },
     { diets: [], allergens: ["Tree nuts"] },
   ), false);
+  assert.equal(passesFilters(
+    { ...dishes[1], allergenDetails: { official_allergens: ["Egg"] } },
+    { diets: [], allergens: ["Eggs"] },
+  ), false);
 });
 
 test("group search requires a matching dish for each person", () => {
