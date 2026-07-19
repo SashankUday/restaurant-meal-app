@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { formatPrice } from "../lib/constants.js";
-import { findGroupMatches, matchDish, passesFilters, sortDishesByPrice, tokenizeQuery } from "../lib/search.js";
+import {
+  filterHomepageDishes,
+  findGroupMatches,
+  matchDish,
+  passesFilters,
+  restaurantsForDishes,
+  sortDishesByPrice,
+  tokenizeQuery,
+} from "../lib/search.js";
 
 const restaurants = [
   { id: 1, name: "Coconut Tree", score: 8.5 },
@@ -12,17 +20,17 @@ const dishes = [
   {
     id: 1, restaurantId: 1, name: "Hot Cuttlefish", restaurantName: "Coconut Tree", cuisine: "Sri Lankan",
     area: "Oxford", description: "", searchTags: ["sweet", "spicy"], tagCounts: {}, score: 8.4,
-    ratingCount: 100, price: 8.5, diets: [], allergens: ["Shellfish"], sponsored: false,
+    ratingCount: 100, price: 8.5, course: "mains", diets: [], allergens: ["Shellfish"], sponsored: false,
   },
   {
     id: 2, restaurantId: 1, name: "Dhal Hopper", restaurantName: "Coconut Tree", cuisine: "Sri Lankan",
     area: "Oxford", description: "", searchTags: ["soupy", "comforting"], tagCounts: {}, score: 8.2,
-    ratingCount: 90, price: 7, diets: ["Vegan", "Vegetarian", "Gluten-free"], allergens: [], sponsored: false,
+    ratingCount: 90, price: 7, course: "mains", diets: ["Vegan", "Vegetarian", "Gluten-free"], allergens: [], sponsored: false,
   },
   {
     id: 3, restaurantId: 2, name: "Sweet Curry", restaurantName: "Other Place", cuisine: "Thai",
     area: "Oxford", description: "", searchTags: ["sweet", "spicy"], tagCounts: {}, score: 9.1,
-    ratingCount: 10, price: 14, diets: [], allergens: [], sponsored: false,
+    ratingCount: 10, price: 14, course: "mains", diets: [], allergens: [], sponsored: false,
   },
 ];
 
@@ -64,6 +72,20 @@ test("unpriced dishes are excluded from price constraints and price sorting", ()
   assert.deepEqual(sortDishesByPrice([unpricedDish, dishes[2], dishes[1]]).map((dish) => dish.id), [2, 3]);
   assert.equal(formatPrice(null), "Price unavailable");
   assert.equal(formatPrice(0), "£0.00");
+});
+
+test("homepage results are mains-only and map restaurants follow matching dishes", () => {
+  const nonMains = [
+    { ...dishes[0], id: 4, restaurantId: 2, course: "starters", name: "Spicy Starter" },
+    { ...dishes[0], id: 5, restaurantId: 2, course: "sides", name: "Spicy Side" },
+    { ...dishes[0], id: 6, restaurantId: 2, course: "desserts", name: "Spicy Dessert" },
+    { ...dishes[0], id: 7, restaurantId: 2, course: "drinks", name: "Spicy Drink" },
+  ];
+  const matches = filterHomepageDishes([...dishes, ...nonMains], { diets: [], allergens: [] }, "soupy comforting");
+
+  assert.deepEqual(matches.map((dish) => dish.id), [2]);
+  assert.deepEqual(restaurantsForDishes(restaurants, matches).map((restaurant) => restaurant.id), [1]);
+  assert.equal(filterHomepageDishes(nonMains, { diets: [], allergens: [] }, "spicy").length, 0);
 });
 
 test("diet and allergen filters hide unsafe results", () => {
