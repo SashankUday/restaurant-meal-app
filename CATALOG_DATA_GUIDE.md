@@ -1,88 +1,93 @@
 # Updating Plate's restaurant and dish data
 
-Plate treats a **dish** as the public menu item and a **meal** as one user's private visit/rating of that dish. Restaurant and dish catalogue data belongs in Supabase; it should not be hard-coded into the React components.
+Plate treats a **dish** as a public menu item and a **meal** as one user's private visit and rating. Catalogue data belongs in Supabase and must not be hard-coded into React components.
 
-Start each new record by copying [`templates/plate-dish-data-template.yaml`](templates/plate-dish-data-template.yaml). It contains every editor-supplied, confirmed, derived, system-managed and future field in one checklist. Values marked `REQUIRED` must be populated before publication; values marked `CONFIRM` must be deliberately verified even when the answer is false, none, or not supplied.
+Start a new record from [`templates/plate-dish-data-template.yaml`](templates/plate-dish-data-template.yaml). Use the Supabase Dashboard **Table Editor** for small edits or **SQL Editor** for reviewed bulk updates. Public browser roles can read the catalogue views but cannot write restaurant or dish data.
 
-Use the Supabase Dashboard **Table Editor** for small edits or **SQL Editor** for repeatable/bulk updates. Catalogue tables intentionally have no public browser write policy, so a visitor cannot change restaurant-supplied information.
+## Simplified data model
 
-## Where each kind of data lives
-
-| Table | Use it for |
+| Table or view | Purpose |
 | --- | --- |
-| `restaurants` | Restaurant, chain/branch, cuisine, address area, coordinates, city/country and delivery radius |
-| `dishes` | Identity, descriptions, preparation, portion, nutrition, dietary/allergen, sensory, availability, visual, derived and search metadata |
-| `dish_price_history` | Current and historic eat-in, takeaway and delivery prices, including region and validity dates |
-| `dish_media` | Official/restaurant/press dish images and visual descriptors |
-| `dish_relationships` | Similar dishes, common combinations, sides, drinks and seasonal recommendations |
-| `ratings` | A user's overall score, optional taste/value/presentation/portion scores, comment and repeat-order answer |
+| `restaurants` | Restaurant identity, optional chain/branch, area, cuisine, coordinates, city/country, description, and timestamps |
+| `dishes` | Dish identity, nullable price, descriptions, menu placement, diets, allergens, nutrition, ingredients, occasions, availability, image, provenance, and search tokens |
+| `ratings` | A user's overall score, tags, comment, visit date, and optional repeat-order answer |
 | `rating_photos` | Private photos attached to a user's meal log |
-| `dish_user_signals` | Per-user saved/favourite state and the aggregate public counts derived from it |
-| `dish_embeddings` | Private, model-labelled future embedding storage; it is not exposed to the browser |
+| `dish_catalog` | Safe public dish records plus restaurant context and aggregate rating, repeat-order, photo, and tag statistics |
+| `restaurant_catalog` | Safe public restaurant records plus aggregate dish-rating statistics |
 
-The app reads `dish_catalog` and `restaurant_catalog`, which assemble these tables into safe public records. You should update the source tables, not the views.
+The retired speculative metadata and retired whole tables were copied to the restricted `archive` schema by `20260718220000_simplify_plate_schema`. Archive tables are recovery records, not live catalogue sources.
+
+## Fields kept on `dishes`
+
+`id`, `restaurant_id`, `name`, `price`, `description`, `short_description`, `course`, `menu_position`, `diets`, `allergens`, `allergen_details`, `nutrition`, `ingredients`, `meal_occasions`, `crowd_tags`, `official_image_url`, `availability`, `hidden_search_tokens`, `data_sources`, `sponsored`, `created_at`, and `updated_at`.
+
+Supported `course` values are `starters`, `mains`, `sides`, `desserts`, and `drinks`.
+
+`price` is nullable. Store `NULL` when a reliable price is not supplied—never use zero as a placeholder. Plate displays “Price unavailable” and excludes null prices from “under £X” queries and price sorting.
 
 ## Recommended update workflow
 
 1. Confirm the restaurant and dish IDs before writing anything.
-2. Copy the dish template, fill its quality-control and source sections, and resolve every `REQUIRED` or `CONFIRM` marker.
-3. Enter only sourced facts. Leave an unknown scalar as `NULL`, an unknown list as `{}`, and unknown structured metadata as `{}`.
-4. Update the restaurant/dish and its `data_sources` together.
-5. Add a new price-history row instead of overwriting history.
-6. Check the dish in Plate's **Dish information** tab and try a few search phrases.
-7. For allergen or nutrition changes, have the source rechecked before publishing.
+2. Copy the dish template and resolve every required or verification marker.
+3. Enter only sourced facts. Use `NULL` for an unknown scalar, `{}` for an unknown PostgreSQL array, and `{}` as JSON for unknown structured metadata.
+4. Update `data_sources` in the same reviewed change as the facts it supports.
+5. Check the dish in Plate's **Dish information** tab and test representative text, calorie, protein, and price searches.
+6. Have allergen and nutrition changes independently rechecked before publishing.
 
-Find the record first:
+Find existing records first:
 
 ```sql
 select
   dish.id as dish_id,
   dish.name as dish_name,
   restaurant.id as restaurant_id,
-  restaurant.name as restaurant_name
+  restaurant.name as restaurant_name,
+  restaurant.branch_name
 from public.dishes dish
 join public.restaurants restaurant on restaurant.id = dish.restaurant_id
 order by restaurant.name, dish.menu_position;
 ```
 
-## Update an existing restaurant
+## Update a restaurant
 
 ```sql
 update public.restaurants
 set
   chain_name = 'Example Group',
   branch_name = 'Oxford City Centre',
-  city = 'Oxford',
-  country_code = 'GB',
-  delivery_radius_km = 5.5,
+  area = 'City Centre',
+  cuisine = '["Example cuisine"]'::jsonb,
   latitude = 51.7520,
   longitude = -1.2577,
+  city = 'Oxford',
+  country_code = 'GB',
   description = 'Restaurant-supplied description.'
 where id = 42;
 ```
 
-Replace `42` with the verified ID. `updated_at` is maintained automatically.
+Replace the example ID and values with verified data. `updated_at` is maintained automatically.
 
-## Update an existing dish
-
-The JSON objects are flexible so new attributes can be added without another schema redesign. Keep the documented key names stable so the app can label and search them consistently.
+## Update a dish
 
 ```sql
 update public.dishes
 set
-  official_description = 'Slow-braised chicken in a rich aromatic broth.',
+  price = 16.50,
+  description = 'Slow-braised chicken in a rich aromatic broth.',
   short_description = 'Tender chicken with a rich, warming broth.',
   course = 'mains',
+  menu_position = 4,
   meal_occasions = array['lunch', 'dinner'],
   ingredients = array['chicken', 'stock', 'ginger', 'spring onion'],
-  cooking_methods = array['braised'],
-  serving_style = 'individual',
-  cultural_origin = 'Restaurant-supplied origin',
-  portion_category = 'large',
-  weight_g = 520,
-  estimated_satiety_score = 8.2,
-  suitable_for_sharing = false,
-  people_served = 1,
+  diets = array['High-protein'],
+  allergens = array['Soybeans'],
+  allergen_details = '{
+    "official_allergens": ["Soybeans"],
+    "may_contain": ["Sesame"],
+    "cross_contamination_risk": true,
+    "separate_preparation_available": false,
+    "notes": "Confirm the latest matrix with staff."
+  }'::jsonb,
   nutrition = '{
     "calories_kcal": 640,
     "protein_g": 42,
@@ -95,123 +100,67 @@ set
     "salt_g": 2.3,
     "micronutrients": {"iron_mg": 4.1, "vitamin_c_mg": 18}
   }'::jsonb,
-  dietary_flags = array['High-protein'],
-  allergens = array['Soybeans'],
-  allergen_details = '{
-    "official_allergens": ["Soybeans"],
-    "may_contain": ["Sesame"],
-    "cross_contamination_risk": true,
-    "separate_preparation_available": false,
-    "notes": "Confirm the latest matrix with staff."
-  }'::jsonb,
-  sensory_profile = '{
-    "textures": ["tender"],
-    "flavours": ["rich", "umami"],
-    "spice": ["mild"],
-    "temperatures": ["hot"],
-    "mouthfeel": ["comforting", "brothy"]
-  }'::jsonb,
-  ingredient_profile = '{
-    "primary_protein": "chicken",
-    "main_carbohydrate": "rice",
-    "vegetables": ["spring onion"],
-    "sauces": ["aromatic broth"],
-    "contains_alcohol": false
-  }'::jsonb,
   availability = '{
     "currently_available": true,
     "seasonal": false,
     "service_windows": ["lunch", "dinner"]
   }'::jsonb,
-  hidden_search_tokens = array['warm', 'comfort food', 'winter', 'rich broth', 'high protein'],
-  derived_features = '{
-    "comfort_score": 9,
-    "satiety_score": 8,
-    "sick_day_suitability_score": 8
-  }'::jsonb,
+  hidden_search_tokens = array['warm', 'comfort food', 'winter', 'rich broth'],
+  official_image_url = 'https://example.com/dish.jpg',
   data_sources = '{
-    "menu": {"source": "restaurant menu", "verified_on": "2026-07-18"},
-    "nutrition": {"source": "restaurant nutrition sheet", "verified_on": "2026-07-18"},
-    "allergens": {"source": "restaurant allergen matrix", "verified_on": "2026-07-18"},
-    "derived_features": {"method": "editorial", "verified_on": "2026-07-18"}
+    "menu": {"source": "restaurant menu", "verified_on": "2026-07-19"},
+    "nutrition": {"source": "restaurant nutrition sheet", "verified_on": "2026-07-19"},
+    "allergens": {"source": "restaurant allergen matrix", "verified_on": "2026-07-19"},
+    "availability": {"source": "restaurant menu", "verified_on": "2026-07-19"},
+    "media": {"source": "restaurant media library", "rights_confirmed": true, "verified_on": "2026-07-19"}
   }'::jsonb
 where id = 101;
 ```
 
-Replace `101` with the verified dish ID and the example values with sourced facts. Do not reuse the sample nutrition or allergen values for a real dish.
+The example nutrition and allergen values are illustrative only. Never reuse them for a real dish.
 
-Supported `course` values are `starters`, `mains`, `sides`, `desserts`, and `drinks`. Supported portion categories are `small`, `medium`, and `large`.
-
-## Record a new price
-
-Keep the legacy `dishes.price` value aligned with the current eat-in price because compact cards still use it. Close the previous history row and add the new one in a transaction:
+To mark a dish as unpriced without discarding the rest of its catalogue record:
 
 ```sql
-begin;
-
-update public.dish_price_history
-set valid_to = date '2026-07-17'
-where dish_id = 101
-  and service_type = 'eat_in'
-  and valid_to is null;
-
-insert into public.dish_price_history
-  (dish_id, service_type, price, currency, region, valid_from)
-values
-  (101, 'eat_in', 16.50, 'GBP', 'Oxford', date '2026-07-18'),
-  (101, 'takeaway', 15.50, 'GBP', 'Oxford', date '2026-07-18'),
-  (101, 'delivery', 17.50, 'GBP', 'Oxford', date '2026-07-18');
-
-update public.dishes set price = 16.50 where id = 101;
-
-commit;
+update public.dishes
+set
+  price = null,
+  data_sources = jsonb_set(
+    data_sources,
+    '{pricing}',
+    '{"status":"not_supplied","verified_on":"2026-07-19"}'::jsonb,
+    true
+  )
+where id = 101;
 ```
 
-Use `eat_in`, `takeaway`, or `delivery` for `service_type`. If a price is branch-specific, link the dish to that branch's restaurant record and use `region` as supporting context—not as a substitute for the branch relationship.
+## Add a restaurant and dish
 
-## Add official media and recommendations
-
-```sql
-insert into public.dish_media
-  (dish_id, source_type, url, alt_text, colour_profile, plating_style, sort_order)
-values
-  (101, 'official', 'https://example.com/dish.jpg', 'The dish as served', array['gold', 'green'], 'deep bowl', 0);
-
-insert into public.dish_relationships
-  (dish_id, related_dish_id, relationship_type, relevance, note)
-values
-  (101, 102, 'side_pairing', 0.90, 'Restaurant recommendation')
-on conflict (dish_id, related_dish_id, relationship_type)
-do update set relevance = excluded.relevance, note = excluded.note;
-```
-
-Relationship types are `similar`, `often_ordered_together`, `side_pairing`, `drink_pairing`, and `seasonal_recommendation`.
-
-## Add a new restaurant and dish
-
-Create the restaurant first, capture its returned ID, then create its dishes. Avoid assigning IDs manually; Supabase generates them.
+Create the restaurant first and use its returned ID. Supabase generates IDs automatically.
 
 ```sql
 insert into public.restaurants
   (name, chain_name, branch_name, area, cuisine, latitude, longitude, city, country_code, description)
 values
-  ('Example Restaurant', 'Example Group', 'Oxford', 'City Centre', 'Example cuisine', 51.7520, -1.2577, 'Oxford', 'GB', 'Restaurant-supplied description')
+  ('Example Restaurant', 'Example Group', 'Oxford', 'City Centre', '["Example cuisine"]'::jsonb, 51.7520, -1.2577, 'Oxford', 'GB', 'Restaurant-supplied description.')
 returning id;
 
 insert into public.dishes
-  (restaurant_id, name, price, description, official_description, short_description, course, menu_position)
+  (restaurant_id, name, price, description, short_description, course, menu_position)
 values
-  (42, 'Example Dish', 12.50, 'Short description.', 'Official menu description.', 'User-friendly description.', 'mains', 1)
+  (42, 'Example Dish', null, 'Full menu description.', 'Concise card description.', 'mains', 1)
 returning id;
 ```
 
-After a new dish is created, add its structured metadata and its initial `dish_price_history` row. The catalogue views update immediately; redeploying the React site is not required for data-only changes.
+Add nutrition, allergens, availability, image rights, and provenance only after verifying their sources. Catalogue views update immediately; no React redeployment is required for data-only changes.
 
-## Data quality rules
+## Search and data-quality rules
 
-- Store nutrition **per serving** and state the source in `data_sources`.
-- Treat dietary, pregnancy, diabetic, allergen and cross-contamination claims as sourced labels, not Plate guarantees.
-- Keep official media rights and source information outside Plate or add it under `data_sources.media`.
-- Use `hidden_search_tokens` for concise human-reviewed synonyms and moods. Put scored/generated concepts in `derived_features` with their method and verification date.
-- Never place private review text, personal data, secrets or service-role credentials in a public catalogue field.
-- Leave `dish_embeddings` private. A future pgvector migration can add indexed semantic search without changing the public dish contract.
+- Nutrition is per serving and uses stable numeric keys such as `calories_kcal` and `protein_g`.
+- `hidden_search_tokens` contains concise human-reviewed synonyms or moods. It is searchable but intentionally not displayed as public copy.
+- `crowd_tags` contains catalogue-level tag counts; current user rating tags are rolled into `tag_counts` and `search_tags` by `dish_catalog`.
+- `allergen_details` can contain `official_allergens`, `may_contain`, cross-contamination information, preparation availability, and notes.
+- `availability` can contain current availability, stock, seasonality, service windows, dates, regions, and branch-specific notes.
+- `data_sources` records provenance and verification status for menu, price, nutrition, allergen, availability, and media facts.
+- Never place private review text, personal data, secrets, or service-role credentials in public catalogue fields.
+- Treat dietary, allergen, pregnancy, diabetic, and cross-contamination claims as sourced labels, not Plate guarantees.

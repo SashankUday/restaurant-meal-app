@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { findGroupMatches, matchDish, passesFilters, tokenizeQuery } from "../lib/search.js";
+import { formatPrice } from "../lib/constants.js";
+import {
+  filterHomepageDishes,
+  findGroupMatches,
+  matchDish,
+  passesFilters,
+  restaurantsForDishes,
+  sortDishesByPrice,
+  tokenizeQuery,
+} from "../lib/search.js";
 
 const restaurants = [
   { id: 1, name: "Coconut Tree", score: 8.5 },
@@ -11,17 +20,17 @@ const dishes = [
   {
     id: 1, restaurantId: 1, name: "Hot Cuttlefish", restaurantName: "Coconut Tree", cuisine: "Sri Lankan",
     area: "Oxford", description: "", searchTags: ["sweet", "spicy"], tagCounts: {}, score: 8.4,
-    ratingCount: 100, price: 8.5, diets: [], allergens: ["Shellfish"], sponsored: false,
+    ratingCount: 100, price: 8.5, course: "mains", diets: [], allergens: ["Shellfish"], sponsored: false,
   },
   {
     id: 2, restaurantId: 1, name: "Dhal Hopper", restaurantName: "Coconut Tree", cuisine: "Sri Lankan",
     area: "Oxford", description: "", searchTags: ["soupy", "comforting"], tagCounts: {}, score: 8.2,
-    ratingCount: 90, price: 7, diets: ["Vegan", "Vegetarian", "Gluten-free"], allergens: [], sponsored: false,
+    ratingCount: 90, price: 7, course: "mains", diets: ["Vegan", "Vegetarian", "Gluten-free"], allergens: [], sponsored: false,
   },
   {
     id: 3, restaurantId: 2, name: "Sweet Curry", restaurantName: "Other Place", cuisine: "Thai",
     area: "Oxford", description: "", searchTags: ["sweet", "spicy"], tagCounts: {}, score: 9.1,
-    ratingCount: 10, price: 14, diets: [], allergens: [], sponsored: false,
+    ratingCount: 10, price: 14, course: "mains", diets: [], allergens: [], sponsored: false,
   },
 ];
 
@@ -34,23 +43,49 @@ test("a multi-descriptor query requires every meaningful token", () => {
   assert.equal(matchDish(dishes[0], "sweet and comforting").matches, false);
 });
 
-test("rich metadata supports natural-language nutrition and negation constraints", () => {
+test("kept nutrition and search fields support calorie, protein, price, and negation constraints", () => {
   const richDish = {
     ...dishes[1],
     price: 14,
+    description: "A rich and comforting broth.",
+    ingredients: ["rice", "broth"],
+    mealOccasions: ["lunch"],
+    hiddenSearchTokens: ["high-protein"],
     nutrition: { calories_kcal: 650, protein_g: 38 },
-    sensoryProfile: { mouthfeel: ["comforting"], flavours: ["rich"], spice: ["mild"] },
-    ingredientProfile: { sauces: ["broth"] },
-    derivedFeatures: { protein_score: "high" },
   };
 
   assert.equal(matchDish(
     richDish,
-    "I want a comforting high-protein meal under 700 calories that isn't too spicy and has a rich broth",
+    "I want a comforting high-protein meal under 700 calories with at least 30g protein that isn't too spicy and has a rich broth",
   ).matches, true);
   assert.equal(matchDish(richDish, "under 600 calories").matches, false);
+  assert.equal(matchDish(richDish, "at least 30g protein").matches, true);
+  assert.equal(matchDish(richDish, "at least 40g protein").matches, false);
   assert.equal(matchDish(richDish, "under £15").matches, true);
   assert.equal(matchDish(richDish, "under £12").matches, false);
+});
+
+test("unpriced dishes are excluded from price constraints and price sorting", () => {
+  const unpricedDish = { ...dishes[0], id: 4, price: null };
+
+  assert.equal(matchDish(unpricedDish, "under £100").matches, false);
+  assert.deepEqual(sortDishesByPrice([unpricedDish, dishes[2], dishes[1]]).map((dish) => dish.id), [2, 3]);
+  assert.equal(formatPrice(null), "Price unavailable");
+  assert.equal(formatPrice(0), "£0.00");
+});
+
+test("homepage results are mains-only and map restaurants follow matching dishes", () => {
+  const nonMains = [
+    { ...dishes[0], id: 4, restaurantId: 2, course: "starters", name: "Spicy Starter" },
+    { ...dishes[0], id: 5, restaurantId: 2, course: "sides", name: "Spicy Side" },
+    { ...dishes[0], id: 6, restaurantId: 2, course: "desserts", name: "Spicy Dessert" },
+    { ...dishes[0], id: 7, restaurantId: 2, course: "drinks", name: "Spicy Drink" },
+  ];
+  const matches = filterHomepageDishes([...dishes, ...nonMains], { diets: [], allergens: [] }, "soupy comforting");
+
+  assert.deepEqual(matches.map((dish) => dish.id), [2]);
+  assert.deepEqual(restaurantsForDishes(restaurants, matches).map((restaurant) => restaurant.id), [1]);
+  assert.equal(filterHomepageDishes(nonMains, { diets: [], allergens: [] }, "spicy").length, 0);
 });
 
 test("diet and allergen filters hide unsafe results", () => {

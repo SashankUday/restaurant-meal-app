@@ -46,10 +46,14 @@ export default function MapPanel({ restaurants }) {
   return (
     <section className="map-section">
       <button className={`map-toggle ${open ? "map-toggle-open" : ""}`} type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open}>
-        <span><strong>Explore the map</strong><small>{restaurants.length} Oxford restaurants</small></span>
+        <span><strong>Explore the map</strong><small>{restaurants.length} matching Oxford {restaurants.length === 1 ? "restaurant" : "restaurants"}</small></span>
         <span aria-hidden="true">{open ? "−" : "+"}</span>
       </button>
-      {open && <div ref={containerRef} className="map" aria-label="Map of Plate restaurants in Oxford" />}
+      {open && (restaurants.length > 0 ? (
+        <div ref={containerRef} className="map" aria-label="Map of matching Plate restaurants in Oxford" />
+      ) : (
+        <div className="map map-empty" role="status">No matching restaurants to show on the map.</div>
+      ))}
     </section>
   );
 }

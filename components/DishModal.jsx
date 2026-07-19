@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { formatPrice } from "../lib/constants.js";
 import DishInformation from "./DishInformation.jsx";
 import MealForm from "./MealForm.jsx";
 import PlateScore from "./PlateScore.jsx";
@@ -41,7 +42,7 @@ export default function DishModal({ dish, onClose }) {
           <>
             <div className="modal-head">
               <div>
-                <p className="eyebrow">{dish.cuisine} · <Link to={`/restaurant/${dish.restaurantId}`} onClick={onClose}>{dish.restaurantName}</Link> · {dish.area}</p>
+                <p className="eyebrow">{dish.cuisine} · <Link to={`/restaurant/${dish.restaurantId}`} onClick={onClose}>{dish.restaurantName}</Link>{dish.branchName && dish.branchName !== dish.restaurantName ? ` · ${dish.branchName}` : ""} · {dish.area}</p>
                 <h2 className="modal-title" id="dish-modal-title">{dish.name}</h2>
               </div>
               <PlateScore score={dish.score} size={72} />
@@ -56,7 +57,7 @@ export default function DishModal({ dish, onClose }) {
               <>
                 <p className="modal-desc">{dish.shortDescription || dish.description}</p>
                 <div className="modal-meta">
-                  <div><span className="meta-label">Price</span><span className="meta-val">£{dish.price.toFixed(2)}</span></div>
+                  <div><span className="meta-label">Price</span><span className="meta-val">{formatPrice(dish.price)}</span></div>
                   <div><span className="meta-label">Ratings</span><span className="meta-val">{dish.ratingCount.toLocaleString()}</span></div>
                   <div>
                     <span className="meta-label">Contains</span>

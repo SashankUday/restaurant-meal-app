@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useAppData } from "../context/AppDataContext.jsx";
 import { COURSES, EMPTY_FILTERS, formatCourse } from "../lib/constants.js";
-import { passesFilters } from "../lib/search.js";
+import { passesFilters, sortDishesByPrice } from "../lib/search.js";
 import { ErrorState, LoadingState } from "../components/AsyncState.jsx";
 import DishCard from "../components/DishCard.jsx";
 import DishModal from "../components/DishModal.jsx";
@@ -23,7 +23,7 @@ export default function RestaurantPage() {
   const visibleDishes = useMemo(() => {
     const next = dishes.filter((dish) => dish.restaurantId === restaurantId && passesFilters(dish, filters));
     if (sort === "rating") next.sort((a, b) => b.score - a.score || b.ratingCount - a.ratingCount);
-    if (sort === "price") next.sort((a, b) => a.price - b.price || b.score - a.score);
+    if (sort === "price") return sortDishesByPrice(next);
     if (sort === "menu") next.sort((a, b) => COURSES.indexOf(a.course) - COURSES.indexOf(b.course) || a.menuPosition - b.menuPosition);
     return next;
   }, [dishes, filters, restaurantId, sort]);
@@ -55,8 +55,9 @@ export default function RestaurantPage() {
         <Link className="back-link" to="/">← All dishes</Link>
         <div className="restaurant-heading">
           <div>
-            <p className="eyebrow">{restaurant.cuisine} · {restaurant.area}</p>
+            <p className="eyebrow">{[restaurant.cuisine, restaurant.branchName, restaurant.area].filter(Boolean).join(" · ")}</p>
             <h1>{restaurant.name}</h1>
+            {restaurant.chainName && restaurant.chainName !== restaurant.name && <p className="restaurant-chain">Part of {restaurant.chainName}</p>}
             <p>{restaurant.description}</p>
           </div>
           <div className="restaurant-score">
