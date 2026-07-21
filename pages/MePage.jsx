@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useAppData } from "../context/AppDataContext.jsx";
+import { isDishCurrentlyAvailable } from "../lib/catalog.js";
 import { fetchMealHistory } from "../lib/api.js";
 import { tokenizeQuery } from "../lib/search.js";
 import AccountSignIn from "../components/AccountSignIn.jsx";
@@ -19,7 +20,7 @@ function MealHistoryCard({ meal }) {
       <div className="meal-history-main">
         <div>
           <p className="eyebrow">{formatVisitDate(meal.visitedAt)}</p>
-          <h3><Link to={`/?dish=${meal.dish.id}`}>{meal.dish.name}</Link></h3>
+          <h3><Link to={`/restaurant/${meal.restaurant.id}?dish=${meal.dish.id}`}>{meal.dish.name}</Link></h3>
           <p className="dish-where"><Link to={`/restaurant/${meal.restaurant.id}`}>{meal.restaurant.name}</Link> · {meal.restaurant.area}</p>
         </div>
         <PlateScore score={meal.score} />
@@ -67,7 +68,9 @@ export default function MePage() {
 
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
-  const restaurantDishes = useMemo(() => dishes.filter((dish) => dish.restaurantId === Number(selectedRestaurantId)), [dishes, selectedRestaurantId]);
+  const restaurantDishes = useMemo(() => dishes.filter((dish) => (
+    dish.restaurantId === Number(selectedRestaurantId) && isDishCurrentlyAvailable(dish)
+  )), [dishes, selectedRestaurantId]);
   const selectedDish = dishes.find((dish) => dish.id === Number(selectedDishId));
 
   useEffect(() => {
@@ -134,7 +137,7 @@ export default function MePage() {
           </label>
         </div>
         {selectedDish && !mealSaved && (
-          <div className="embedded-meal-form"><MealForm key={selectedDish.id} dish={selectedDish} onSaved={async () => { await loadHistory(); setMealSaved(true); }} /></div>
+          <div className="embedded-meal-form"><MealForm key={selectedDish.id} dish={selectedDish} initialDishId={selectedDish.id} onSaved={async () => { await loadHistory(); setMealSaved(true); }} /></div>
         )}
         {mealSaved && (
           <div className="inline-success" role="status">

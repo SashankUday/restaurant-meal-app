@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useAppData } from "../context/AppDataContext.jsx";
+import { isDishCurrentlyAvailable } from "../lib/catalog.js";
 import { COURSES, EMPTY_FILTERS, formatCourse } from "../lib/constants.js";
 import { passesFilters, sortDishesByPrice } from "../lib/search.js";
 import { ErrorState, LoadingState } from "../components/AsyncState.jsx";
@@ -21,7 +22,11 @@ export default function RestaurantPage() {
   const restaurant = restaurants.find((item) => item.id === restaurantId);
 
   const visibleDishes = useMemo(() => {
-    const next = dishes.filter((dish) => dish.restaurantId === restaurantId && passesFilters(dish, filters));
+    const next = dishes.filter((dish) => (
+      dish.restaurantId === restaurantId
+      && isDishCurrentlyAvailable(dish)
+      && passesFilters(dish, filters)
+    ));
     if (sort === "rating") next.sort((a, b) => b.score - a.score || b.ratingCount - a.ratingCount);
     if (sort === "price") return sortDishesByPrice(next);
     if (sort === "menu") next.sort((a, b) => COURSES.indexOf(a.course) - COURSES.indexOf(b.course) || a.menuPosition - b.menuPosition);
@@ -57,7 +62,7 @@ export default function RestaurantPage() {
           <div>
             <p className="eyebrow">{[restaurant.cuisine, restaurant.branchName, restaurant.area].filter(Boolean).join(" · ")}</p>
             <h1>{restaurant.name}</h1>
-            {restaurant.chainName && restaurant.chainName !== restaurant.name && <p className="restaurant-chain">Part of {restaurant.chainName}</p>}
+            {restaurant.brandName && restaurant.brandName !== restaurant.name && <p className="restaurant-chain">Part of {restaurant.brandName}</p>}
             <p>{restaurant.description}</p>
           </div>
           <div className="restaurant-score">
@@ -102,7 +107,7 @@ export default function RestaurantPage() {
         <div className="empty"><p className="empty-title">No menu items pass those filters.</p><p>Remove a dietary or allergen filter to see more of the menu.</p></div>
       )}
       <p className="allergen-page-note">Allergen information is provided by the restaurant. Always confirm with staff before ordering.</p>
-      {openDish && <DishModal dish={openDish} onClose={() => setOpenDish(null)} />}
+      {openDish && <DishModal key={openDish.id} dish={openDish} initialDishId={openDish.id} onClose={() => setOpenDish(null)} />}
     </>
   );
 }

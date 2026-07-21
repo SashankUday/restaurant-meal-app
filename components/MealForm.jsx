@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useAppData } from "../context/AppDataContext.jsx";
+import { availableBranchesForDish, resolveInitialBranchDishId } from "../lib/catalog.js";
 import { createMeal } from "../lib/api.js";
-import { RATING_TAGS } from "../lib/constants.js";
+import { formatPrice, RATING_TAGS } from "../lib/constants.js";
 import { validatePhotoSelection } from "../lib/image.js";
 import AccountSignIn from "./AccountSignIn.jsx";
 import Chip from "./Chip.jsx";
@@ -15,9 +16,19 @@ function cleanCustomTag(tag) {
   return tag.trim().replace(/\s+/g, " ").slice(0, 30);
 }
 
-export default function MealForm({ dish, onSaved }) {
+export default function MealForm({ dish, onSaved, initialDishId = null }) {
   const { user } = useAuth();
   const { refresh } = useAppData();
+  const branchOptions = useMemo(
+    () => availableBranchesForDish(dish, { city: dish.isGrouped ? dish.city : undefined }),
+    [dish],
+  );
+  const initialSelectedDishId = resolveInitialBranchDishId(
+    dish,
+    initialDishId,
+    { city: dish.isGrouped ? dish.city : undefined },
+  );
+  const [selectedDishId, setSelectedDishId] = useState(initialSelectedDishId);
   const [score, setScore] = useState(null);
   const [wouldOrderAgain, setWouldOrderAgain] = useState(null);
   const [tags, setTags] = useState([]);
@@ -30,6 +41,15 @@ export default function MealForm({ dish, onSaved }) {
 
   const previews = useMemo(() => files.map((file) => ({ file, url: URL.createObjectURL(file) })), [files]);
   useEffect(() => () => previews.forEach(({ url }) => URL.revokeObjectURL(url)), [previews]);
+  useEffect(() => {
+    setSelectedDishId(resolveInitialBranchDishId(
+      dish,
+      initialDishId,
+      { city: dish.isGrouped ? dish.city : undefined },
+    ));
+  }, [dish, initialDishId]);
+
+  const selectedBranch = branchOptions.find((branch) => String(branch.dishId) === selectedDishId);
 
   if (!user) return <AccountSignIn compact />;
 
@@ -62,13 +82,16 @@ export default function MealForm({ dish, onSaved }) {
 
   async function submit(event) {
     event.preventDefault();
-    if (score === null) return;
+    if (score === null || !selectedBranch) {
+      if (!selectedBranch) setError("Choose the branch where you ate this dish.");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
       await createMeal({
         userId: user.id,
-        dishId: dish.id,
+        dishId: selectedBranch.dishId,
         score,
         tags,
         comment,
@@ -94,6 +117,33 @@ export default function MealForm({ dish, onSaved }) {
         </div>
         <span className="signed-in-email">{user.email}</span>
       </div>
+
+      <label className="branch-picker" htmlFor={`branch-${dish.canonicalDishId || dish.id}`}>
+        <span className="field-label">Branch</span>
+        <select
+          id={`branch-${dish.canonicalDishId || dish.id}`}
+          className="select-input"
+          value={selectedDishId}
+          onChange={(event) => {
+            setSelectedDishId(event.target.value);
+            setError("");
+          }}
+          required
+        >
+          <option value="">Choose where you ate it</option>
+          {branchOptions.map((branch) => (
+            <option key={branch.dishId} value={String(branch.dishId)}>
+              {branch.branchName || branch.restaurantName} · {branch.area} · {formatPrice(branch.price)}
+            </option>
+          ))}
+        </select>
+      </label>
+      {selectedBranch && (
+        <p className="field-help branch-choice">
+          This rating will be saved to {selectedBranch.branchName || selectedBranch.restaurantName}’s menu item #{selectedBranch.dishId}.
+        </p>
+      )}
+      {!branchOptions.length && <p className="form-error" role="alert">This dish is not currently offered at a selectable branch.</p>}
 
       <label className="field-label" htmlFor={`visited-${dish.id}`}>Visit date</label>
       <input
@@ -190,7 +240,7 @@ export default function MealForm({ dish, onSaved }) {
       )}
 
       {error && <p className="form-error" role="alert">{error}</p>}
-      <button className="btn-primary" type="submit" disabled={saving || score === null}>
+      <button className="btn-primary" type="submit" disabled={saving || score === null || !selectedBranch}>
         {saving ? "Saving your meal…" : "Save to My Meals"}
       </button>
     </form>

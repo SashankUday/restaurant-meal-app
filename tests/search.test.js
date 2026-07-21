@@ -121,3 +121,72 @@ test("group filters are applied before restaurant matching", () => {
   assert.equal(result.complete.length, 0);
   assert.deepEqual(result.partial.map((item) => item.restaurant.id), [1, 2]);
 });
+
+test("group matching never combines suitable dishes from different physical branches of one brand", () => {
+  const chainRestaurants = [
+    { id: 10, name: "Wagamama Market Street", brandId: 7, score: 8.5 },
+    { id: 20, name: "Wagamama Westgate", brandId: 7, score: 8.5 },
+  ];
+  const chainDishes = [
+    {
+      ...dishes[0],
+      id: 101,
+      canonicalDishId: 501,
+      restaurantId: 10,
+      restaurantName: "Wagamama Market Street",
+      searchTags: ["sweet", "spicy"],
+      isGrouped: false,
+      isActive: true,
+    },
+    {
+      ...dishes[1],
+      id: 202,
+      canonicalDishId: 502,
+      restaurantId: 20,
+      restaurantName: "Wagamama Westgate",
+      searchTags: ["soupy", "comforting"],
+      isGrouped: false,
+      isActive: true,
+    },
+  ];
+  const result = findGroupMatches(chainDishes, chainRestaurants, [
+    { id: "a", name: "A", query: "sweet and spicy" },
+    { id: "b", name: "B", query: "soupy and comforting" },
+  ], { diets: [], allergens: [] });
+
+  assert.equal(result.complete.length, 0);
+  assert.deepEqual(new Set(result.partial.map((item) => item.restaurant.id)), new Set([10, 20]));
+  assert.equal(result.partial.every((item) => item.matchedCount === 1), true);
+});
+
+test("inactive branch offerings are not eligible for group recommendations", () => {
+  const result = findGroupMatches([
+    { ...dishes[0], id: 99, isActive: false },
+  ], restaurants, [
+    { id: "a", name: "A", query: "sweet and spicy" },
+  ], { diets: [], allergens: [] });
+
+  assert.equal(result.complete.length, 0);
+  assert.equal(result.partial.length, 0);
+});
+
+test("sibling branch location terms are searchable only on grouped catalogue dishes", () => {
+  const branchDish = {
+    ...dishes[0],
+    brandName: "Wagamama",
+    branchName: "Market Street",
+    area: "City Centre",
+    branches: [{
+      dishId: 202,
+      restaurantId: 20,
+      restaurantName: "Wagamama",
+      branchName: "Westgate",
+      area: "Westgate",
+      city: "Oxford",
+    }],
+    isGrouped: false,
+  };
+
+  assert.equal(matchDish(branchDish, "Westgate").matches, false);
+  assert.equal(matchDish({ ...branchDish, isGrouped: true }, "Westgate").matches, true);
+});

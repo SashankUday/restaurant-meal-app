@@ -1,4 +1,5 @@
-import { formatCourse, formatPrice } from "../lib/constants.js";
+import { availableBranchesForDish, isDishCurrentlyAvailable } from "../lib/catalog.js";
+import { formatCourse, formatDishPrice, formatPrice } from "../lib/constants.js";
 
 const NUTRIENT_LABELS = {
   calories_kcal: ["Calories", "kcal"],
@@ -68,6 +69,9 @@ export default function DishInformation({ dish }) {
   const micronutrients = dish.nutrition?.micronutrients || {};
   const availability = dish.availability || {};
   const hasDistinctCardDescription = hasValue(dish.shortDescription) && dish.shortDescription !== dish.description;
+  const branches = availableBranchesForDish(dish, { city: dish.isGrouped ? dish.city : undefined });
+  const locationCount = new Set(branches.map((branch) => branch.restaurantId)).size;
+  const currentlyAvailable = dish.isGrouped ? branches.length > 0 : isDishCurrentlyAvailable(dish);
 
   return (
     <div className="dish-information">
@@ -81,13 +85,21 @@ export default function DishInformation({ dish }) {
         <h3>At a glance</h3>
         <dl className="info-grid">
           <div><dt>Menu section</dt><dd>{formatCourse(dish.course)}</dd></div>
-          <div><dt>Meal occasion</dt><dd>{dish.mealOccasions.length ? dish.mealOccasions.join(", ") : "Not supplied"}</dd></div>
-          <div><dt>Price</dt><dd>{formatPrice(dish.price)}</dd></div>
-          <div><dt>Chain</dt><dd>{dish.chainName || "Independent / not supplied"}</dd></div>
-          <div><dt>Branch</dt><dd>{dish.branchName || "Not supplied"}</dd></div>
-          <div><dt>Location</dt><dd>{[dish.area, dish.city].filter(Boolean).join(", ") || "Not supplied"}</dd></div>
-          <div><dt>Currently available</dt><dd>{availability.currently_available === false || availability.out_of_stock === true ? "No" : "Yes"}</dd></div>
-          <div><dt>Dish ID</dt><dd>{dish.id}</dd></div>
+          <div><dt>Meal occasion</dt><dd>{dish.mealOccasions?.length ? dish.mealOccasions.join(", ") : "Not supplied"}</dd></div>
+          <div><dt>Price</dt><dd>{formatDishPrice(dish)}</dd></div>
+          <div><dt>Brand</dt><dd>{dish.brandName || dish.restaurantName || "Not supplied"}</dd></div>
+          {dish.isGrouped ? (
+            <div><dt>Locations</dt><dd>{locationCount} in {dish.city}</dd></div>
+          ) : (
+            <div><dt>Branch</dt><dd>{dish.branchName || dish.area || "Not supplied"}</dd></div>
+          )}
+          <div><dt>Location</dt><dd>{dish.isGrouped ? dish.city : [dish.area, dish.city].filter(Boolean).join(", ") || "Not supplied"}</dd></div>
+          <div><dt>Currently available</dt><dd>{currentlyAvailable ? "Yes" : "No"}</dd></div>
+          <div><dt>Canonical dish ID</dt><dd>{dish.canonicalDishId}</dd></div>
+          {dish.marketCode && <div><dt>Market</dt><dd>{dish.marketCode}</dd></div>}
+          {dish.canonicalVersion != null && <div><dt>Canonical version</dt><dd>{dish.canonicalVersion}</dd></div>}
+          {dish.canonicalReviewStatus && <div><dt>Review status</dt><dd>{labelFor(dish.canonicalReviewStatus)}</dd></div>}
+          {!dish.isGrouped && <div><dt>Branch dish ID</dt><dd>{dish.id}</dd></div>}
         </dl>
       </section>
 
@@ -120,6 +132,10 @@ export default function DishInformation({ dish }) {
         <div className="info-disclosure-body">
           <div className="info-copy-block"><h4>Diets</h4><InfoChips values={dish.diets} tone="tag-diet" /></div>
           <div className="info-copy-block"><h4>Official allergens</h4><InfoChips values={dish.allergens} /></div>
+          <div className="info-copy-block">
+            <h4>Allergen verification</h4>
+            <p>{dish.allergensVerified ? "Marked as verified in the restaurant data." : "Not marked as verified in the restaurant data."}</p>
+          </div>
           <MetadataRows value={dish.allergenDetails} />
           <p className="allergen-note">Allergen information is provided by the restaurant. Always confirm ingredients, “may contain” warnings and preparation practices with staff before ordering.</p>
         </div>
@@ -129,8 +145,17 @@ export default function DishInformation({ dish }) {
         <summary>Community experience</summary>
         <div className="info-disclosure-body">
           <dl className="metadata-rows">
-            <div><dt>Repeat-order rate</dt><dd>{dish.repeatOrderRate === null ? "Not enough data" : `${Math.round(dish.repeatOrderRate * 100)}%`}</dd></div>
-            <div><dt>User photos</dt><dd>{dish.userPhotoCount.toLocaleString()}</dd></div>
+            {dish.isGrouped ? (
+              <>
+                <div><dt>{dish.city} score</dt><dd>{Number(dish.cityScore || 0).toFixed(1)} from {Number(dish.cityRatingCount || 0).toLocaleString()} ratings</dd></div>
+                <div><dt>Overall score</dt><dd>{Number(dish.overallScore || 0).toFixed(1)} from {Number(dish.overallRatingCount || 0).toLocaleString()} ratings</dd></div>
+              </>
+            ) : (
+              <>
+                <div><dt>Repeat-order rate</dt><dd>{dish.repeatOrderRate == null ? "Not enough data" : `${Math.round(dish.repeatOrderRate * 100)}%`}</dd></div>
+                <div><dt>User photos</dt><dd>{Number(dish.userPhotoCount || 0).toLocaleString()}</dd></div>
+              </>
+            )}
           </dl>
         </div>
       </details>
@@ -138,7 +163,18 @@ export default function DishInformation({ dish }) {
       <details className="info-disclosure">
         <summary>Availability</summary>
         <div className="info-disclosure-body">
-          <MetadataRows value={availability} />
+          {dish.isGrouped ? (
+            branches.length ? (
+              <dl className="metadata-rows">
+                {branches.map((branch) => (
+                  <div key={branch.dishId}>
+                    <dt>{branch.branchName || branch.restaurantName}</dt>
+                    <dd>{branch.area} · {formatPrice(branch.price)}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : <EmptyInfo>No branch currently lists this dish as available.</EmptyInfo>
+          ) : <MetadataRows value={availability} />}
         </div>
       </details>
 

@@ -138,7 +138,7 @@ export default function GroupPage() {
           </section>
         )}
       </main>
-      {openDish && <DishModal dish={openDish} onClose={() => setOpenId(null)} />}
+      {openDish && <DishModal key={openDish.id} dish={openDish} initialDishId={openDish.id} onClose={() => setOpenId(null)} />}
     </>
   );
 }

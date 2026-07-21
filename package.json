@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "test:db": "npx --yes supabase@2.109.1 test db --local supabase/tests/database",
+    "types:generate": "npx --yes supabase@2.109.1 gen types --lang typescript --local > supabase/database.types.ts"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

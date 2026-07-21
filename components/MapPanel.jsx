@@ -5,9 +5,9 @@ function popupContent(restaurant) {
   const container = document.createElement("div");
   container.className = "map-popup";
   const name = document.createElement("strong");
-  name.textContent = restaurant.name;
+  name.textContent = restaurant.brandName || restaurant.name;
   const details = document.createElement("span");
-  details.textContent = `${restaurant.cuisine} · ${restaurant.score.toFixed(1)} (${restaurant.ratingCount.toLocaleString()})`;
+  details.textContent = `${restaurant.branchName || restaurant.area} · ${restaurant.cuisine} · ${restaurant.score.toFixed(1)} (${restaurant.ratingCount.toLocaleString()})`;
   const link = document.createElement("a");
   link.href = `/restaurant/${restaurant.id}`;
   link.textContent = "See the menu";
@@ -33,7 +33,7 @@ export default function MapPanel({ restaurants }) {
     restaurants.forEach((restaurant) => {
       const position = [restaurant.latitude, restaurant.longitude];
       bounds.push(position);
-      L.marker(position, { icon, title: restaurant.name })
+      L.marker(position, { icon, title: `${restaurant.brandName || restaurant.name} · ${restaurant.branchName || restaurant.area}` })
         .addTo(map)
         .bindPopup(popupContent(restaurant));
     });
