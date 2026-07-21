@@ -92,13 +92,27 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const updateProfile = useCallback(async (changes) => {
+    if (!user) throw new Error("Sign in before updating your account.");
+    const { data, error } = await supabase
+      .from("profiles")
+      .update(changes)
+      .eq("id", user.id)
+      .select("id, email, dietary_requirements")
+      .single();
+    if (error) throw error;
+    setUser(data);
+    return data;
+  }, [user]);
+
   const value = useMemo(() => ({
     user,
     loading,
     isConfigured: isSupabaseConfigured,
     signIn,
     signOut,
-  }), [user, loading, signIn, signOut]);
+    updateProfile,
+  }), [user, loading, signIn, signOut, updateProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
