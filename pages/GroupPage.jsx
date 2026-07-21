@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAppData } from "../context/AppDataContext.jsx";
-import { EMPTY_FILTERS, formatPrice } from "../lib/constants.js";
+import { countActiveConstraints, EMPTY_FILTERS, formatPrice } from "../lib/constants.js";
 import { findGroupMatches, tokenizeQuery } from "../lib/search.js";
 import { ErrorState, LoadingState } from "../components/AsyncState.jsx";
 import DishModal from "../components/DishModal.jsx";
@@ -56,7 +56,8 @@ export default function GroupPage() {
   const results = useMemo(() => findGroupMatches(dishes, restaurants, people, filters), [dishes, restaurants, people, filters]);
   const ready = people.every((person) => tokenizeQuery(person.query).length > 0);
   const activeFilters = filters.diets.length + filters.allergens.length
-    + (filters.course ? 1 : 0) + (filters.mealTime && filters.mealTime !== "any" ? 1 : 0);
+    + (filters.course ? 1 : 0) + (filters.mealTime && filters.mealTime !== "any" ? 1 : 0)
+    + countActiveConstraints(filters.constraints);
 
   function updatePerson(id, field, value) {
     setPeople((current) => current.map((person) => person.id === id ? { ...person, [field]: value } : person));

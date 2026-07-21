@@ -71,7 +71,7 @@ export default function DishModal({ dish, onClose, initialDishId = null }) {
                 </p>
                 <h2 className="modal-title" id="dish-modal-title">{dish.name}</h2>
               </div>
-              <PlateScore score={dish.score} size={72} />
+              <PlateScore score={dish.score} size={72} ratingCount={dish.ratingCount} />
             </div>
 
             <div className="modal-tabs" role="tablist" aria-label="Dish detail sections">

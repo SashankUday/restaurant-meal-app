@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useAppData } from "../context/AppDataContext.jsx";
 import { isDishCurrentlyAvailable } from "../lib/catalog.js";
-import { COURSES, EMPTY_FILTERS, formatCourse } from "../lib/constants.js";
+import { countActiveConstraints, COURSES, EMPTY_FILTERS, formatCourse } from "../lib/constants.js";
 import { passesFilters, sortDishesByPrice } from "../lib/search.js";
 import { ErrorState, LoadingState } from "../components/AsyncState.jsx";
 import DishCard from "../components/DishCard.jsx";
@@ -52,7 +52,8 @@ export default function RestaurantPage() {
   }
 
   const activeFilters = filters.diets.length + filters.allergens.length
-    + (filters.course ? 1 : 0) + (filters.mealTime && filters.mealTime !== "any" ? 1 : 0);
+    + (filters.course ? 1 : 0) + (filters.mealTime && filters.mealTime !== "any" ? 1 : 0)
+    + countActiveConstraints(filters.constraints);
   const openDish = dishes.find((dish) => dish.id === openId && dish.restaurantId === restaurantId);
 
   return (
@@ -67,7 +68,7 @@ export default function RestaurantPage() {
             <p>{restaurant.description}</p>
           </div>
           <div className="restaurant-score">
-            <PlateScore score={restaurant.score} size={86} />
+            <PlateScore score={restaurant.score} size={86} ratingCount={restaurant.ratingCount} />
             <span>{restaurant.ratingCount.toLocaleString()} dish ratings</span>
           </div>
         </div>

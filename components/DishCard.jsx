@@ -45,7 +45,7 @@ export default function DishCard({ dish, onOpen }) {
               )}
             </p>
           </div>
-          <PlateScore score={dish.score} />
+          <PlateScore score={dish.score} ratingCount={dish.ratingCount} />
         </div>
         <p className="dish-desc">{dish.shortDescription || dish.description}</p>
         <div className="card-foot">

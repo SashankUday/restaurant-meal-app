@@ -9,6 +9,9 @@ import AccountSignIn from "../components/AccountSignIn.jsx";
 import { LoadingState } from "../components/AsyncState.jsx";
 import MealForm from "../components/MealForm.jsx";
 import PlateScore from "../components/PlateScore.jsx";
+import SearchableSelect from "../components/SearchableSelect.jsx";
+
+const DISH_GROUP_ORDER = ["Mains", "Sides & drinks"];
 
 function formatVisitDate(value) {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${value}T12:00:00`));
@@ -130,10 +133,18 @@ export default function MePage() {
           </label>
           <label>
             <span className="field-label">Dish</span>
-            <select className="select-input" value={selectedDishId} disabled={!selectedRestaurantId} onChange={(event) => { setSelectedDishId(event.target.value); setMealSaved(false); }}>
-              <option value="">Choose a dish</option>
-              {restaurantDishes.map((dish) => <option key={dish.id} value={dish.id}>{dish.name}</option>)}
-            </select>
+            <SearchableSelect
+              value={selectedDishId}
+              disabled={!selectedRestaurantId}
+              placeholder="Search this menu"
+              groupOrder={DISH_GROUP_ORDER}
+              onChange={(next) => { setSelectedDishId(String(next)); setMealSaved(false); }}
+              options={restaurantDishes.map((dish) => ({
+                value: dish.id,
+                label: dish.name,
+                group: dish.course === "mains" ? "Mains" : "Sides & drinks",
+              }))}
+            />
           </label>
         </div>
         {selectedDish && !mealSaved && (
