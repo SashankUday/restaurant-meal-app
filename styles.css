@@ -296,6 +296,8 @@ img { max-width: 100%; }
 .btn-primary:hover { background: var(--accent-deep); }
 .btn-primary:disabled { background: #e0cdbb; cursor: not-allowed; }
 .btn-quiet { margin-top: 18px; padding: 11px 18px; border: 1.5px solid var(--rim); border-radius: 99px; background: var(--card); color: var(--ink); font-size: 14px; font-weight: 600; cursor: pointer; }
+.modal-actions { display: flex; flex-direction: column; align-items: center; }
+.modal-actions .btn-quiet { margin-top: 10px; }
 .btn-quiet:disabled { opacity: 0.5; cursor: not-allowed; }
 .link-button { display: inline-block; width: auto; text-decoration: none; text-align: center; }
 .done { padding: 34px 0 8px; text-align: center; }

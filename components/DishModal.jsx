@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { availableBranchesForDish } from "../lib/catalog.js";
+import { fetchDishPhotos } from "../lib/api.js";
 import { formatDishPrice, formatPrice } from "../lib/constants.js";
 import DishInformation from "./DishInformation.jsx";
 import MealForm from "./MealForm.jsx";
@@ -9,6 +10,7 @@ import PlateScore from "./PlateScore.jsx";
 export default function DishModal({ dish, onClose, initialDishId = null }) {
   const [mode, setMode] = useState("view");
   const [viewTab, setViewTab] = useState("overview");
+  const [photos, setPhotos] = useState([]);
   const sortedTags = Object.entries(dish.tagCounts || {}).sort((a, b) => b[1] - a[1]);
   const maxTagCount = Math.max(1, ...sortedTags.map(([, count]) => Number(count)));
   const branches = availableBranchesForDish(dish, { city: dish.isGrouped ? dish.city : undefined });
@@ -17,6 +19,15 @@ export default function DishModal({ dish, onClose, initialDishId = null }) {
   const branchScore = Number(dish.branchScore ?? dish.score ?? 0);
   const cityScore = Number(dish.cityScore ?? dish.score ?? 0);
   const overallScore = Number(dish.overallScore ?? dish.score ?? 0);
+
+  useEffect(() => {
+    if (!dish.canonicalDishId) return;
+    let cancelled = false;
+    fetchDishPhotos(dish.canonicalDishId).then((result) => {
+      if (!cancelled) setPhotos(result.filter((photo) => photo.url));
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [dish.canonicalDishId]);
 
   useEffect(() => {
     function onKeyDown(event) {
@@ -45,6 +56,8 @@ export default function DishModal({ dish, onClose, initialDishId = null }) {
           </div>
         ) : mode === "log" ? (
           <MealForm dish={dish} initialDishId={initialDishId} onSaved={() => setMode("done")} />
+        ) : mode === "quickRate" ? (
+          <MealForm dish={dish} initialDishId={initialDishId} quick onSaved={() => setMode("done")} />
         ) : (
           <>
             <div className="modal-head">
@@ -97,6 +110,15 @@ export default function DishModal({ dish, onClose, initialDishId = null }) {
                   </div>
                 )}
 
+                {photos.length > 0 && (
+                  <>
+                    <h3 className="section-label">Photos from diners</h3>
+                    <div className="photo-preview-row" aria-label="Diner photos of this dish">
+                      {photos.map((photo) => <img key={photo.id} src={photo.url} alt={`A diner's photo of ${dish.name}`} />)}
+                    </div>
+                  </>
+                )}
+
                 <h3 className="section-label">What diners say</h3>
                 <div className="tag-bars">
                   {sortedTags.map(([tag, count]) => (
@@ -109,7 +131,10 @@ export default function DishModal({ dish, onClose, initialDishId = null }) {
                 </div>
               </>
             )}
-            <button className="btn-primary" type="button" onClick={() => setMode("log")}>I ate this — log my meal</button>
+            <div className="modal-actions">
+              <button className="btn-primary" type="button" onClick={() => setMode("log")}>I ate this — log my meal</button>
+              <button className="btn-quiet" type="button" onClick={() => setMode("quickRate")}>Rate without a visit</button>
+            </div>
           </>
         )}
       </div>

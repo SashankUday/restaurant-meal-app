@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useAppData } from "../context/AppDataContext.jsx";
 import { groupCityDishes } from "../lib/catalog.js";
 import { EMPTY_FILTERS } from "../lib/constants.js";
-import { filterHomepageDishes, restaurantsForDishes, sortDishesByPrice } from "../lib/search.js";
+import { filterHomepageDishes, pickRandomFeatured, restaurantsForDishes, sortDishesByPrice } from "../lib/search.js";
 import { ErrorState, LoadingState } from "../components/AsyncState.jsx";
 import DishCard from "../components/DishCard.jsx";
 import DishModal from "../components/DishModal.jsx";
@@ -27,13 +27,17 @@ export default function HomePage() {
     [groupedDishes, filters, query],
   );
 
+  const [featuredCount] = useState(() => 20 + Math.floor(Math.random() * 11));
+  const isBrowsing = !query.trim() && sort === "top";
+
   const organicResults = useMemo(() => {
     const results = matchingDishes.filter((dish) => !dish.sponsored);
+    if (isBrowsing) return pickRandomFeatured(results, { count: featuredCount });
     if (sort === "top") results.sort((a, b) => b.score - a.score || b.ratingCount - a.ratingCount);
     if (sort === "price") return sortDishesByPrice(results);
     if (sort === "count") results.sort((a, b) => b.ratingCount - a.ratingCount || b.score - a.score);
     return results;
-  }, [matchingDishes, sort]);
+  }, [matchingDishes, sort, isBrowsing, featuredCount]);
 
   const sponsored = matchingDishes.find((dish) => (
     dish.sponsored
@@ -47,7 +51,8 @@ export default function HomePage() {
     () => restaurantsForDishes(restaurants, mapDishes),
     [restaurants, mapDishes],
   );
-  const activeFilters = filters.diets.length + filters.allergens.length;
+  const activeFilters = filters.diets.length + filters.allergens.length
+    + (filters.course ? 1 : 0) + (filters.mealTime && filters.mealTime !== "any" ? 1 : 0);
   const openDish = matchingDishes.find((dish) => dish.id === openId);
 
   function setOpenDish(id) {
