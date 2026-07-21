@@ -55,7 +55,8 @@ export default function GroupPage() {
 
   const results = useMemo(() => findGroupMatches(dishes, restaurants, people, filters), [dishes, restaurants, people, filters]);
   const ready = people.every((person) => tokenizeQuery(person.query).length > 0);
-  const activeFilters = filters.diets.length + filters.allergens.length;
+  const activeFilters = filters.diets.length + filters.allergens.length
+    + (filters.course ? 1 : 0) + (filters.mealTime && filters.mealTime !== "any" ? 1 : 0);
 
   function updatePerson(id, field, value) {
     setPeople((current) => current.map((person) => person.id === id ? { ...person, [field]: value } : person));
@@ -138,7 +139,7 @@ export default function GroupPage() {
           </section>
         )}
       </main>
-      {openDish && <DishModal dish={openDish} onClose={() => setOpenId(null)} />}
+      {openDish && <DishModal key={openDish.id} dish={openDish} initialDishId={openDish.id} onClose={() => setOpenId(null)} />}
     </>
   );
 }

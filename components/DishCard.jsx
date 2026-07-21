@@ -1,10 +1,15 @@
 import { Link } from "react-router-dom";
-import { formatPrice } from "../lib/constants.js";
+import { formatDishPrice } from "../lib/constants.js";
 import PlateScore from "./PlateScore.jsx";
 
 export default function DishCard({ dish, onOpen }) {
   const topTags = Object.entries(dish.tagCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 3);
   const openDish = () => onOpen?.(dish.id);
+  const locationCount = dish.locationCount || new Set((dish.branches || []).map((branch) => branch.restaurantId)).size;
+  const locationLabel = `${locationCount} ${dish.city || "local"} ${locationCount === 1 ? "location" : "locations"}`;
+  const whereLabel = dish.isGrouped
+    ? `${dish.brandName} · ${locationLabel}`
+    : `${dish.restaurantName}${dish.branchName && dish.branchName !== dish.restaurantName ? ` · ${dish.branchName}` : ""} · ${dish.area}`;
 
   return (
     <article
@@ -18,7 +23,7 @@ export default function DishCard({ dish, onOpen }) {
           openDish();
         }
       }}
-      aria-label={`View ${dish.name} at ${dish.restaurantName}`}
+      aria-label={`View ${dish.name} ${dish.isGrouped ? `from ${dish.brandName}` : `at ${dish.restaurantName}`}`}
     >
       {dish.sponsored && (
         <div className="sponsored-band">
@@ -31,16 +36,20 @@ export default function DishCard({ dish, onOpen }) {
           <div>
             <h3 className="dish-name">{dish.name}</h3>
             <p className="dish-where">
-              <Link to={`/restaurant/${dish.restaurantId}`} onClick={(event) => event.stopPropagation()}>{dish.restaurantName}</Link>
-              {dish.branchName && dish.branchName !== dish.restaurantName ? ` · ${dish.branchName}` : ""}
-              {` · ${dish.area}`}
+              {dish.isGrouped ? whereLabel : (
+                <>
+                  <Link to={`/restaurant/${dish.restaurantId}`} onClick={(event) => event.stopPropagation()}>{dish.restaurantName}</Link>
+                  {dish.branchName && dish.branchName !== dish.restaurantName ? ` · ${dish.branchName}` : ""}
+                  {` · ${dish.area}`}
+                </>
+              )}
             </p>
           </div>
           <PlateScore score={dish.score} />
         </div>
         <p className="dish-desc">{dish.shortDescription || dish.description}</p>
         <div className="card-foot">
-          <span className="price">{formatPrice(dish.price)}</span>
+          <span className="price">{formatDishPrice(dish)}</span>
           <span className="count">{dish.ratingCount.toLocaleString()} ratings</span>
         </div>
         <div className="tag-row">

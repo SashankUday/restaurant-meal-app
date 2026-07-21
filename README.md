@@ -1,6 +1,6 @@
 # Plate
 
-Plate is a responsive React and Supabase app for discovering, rating, and remembering individual restaurant dishes in Oxford. It supports natural-language craving search, focused dish information, restaurant menus, group matching, dietary and allergen filters, a restaurant map, lightweight accounts, private meal history, and photo-backed meal logs.
+Plate is a responsive React and Supabase app for discovering, rating, and remembering individual restaurant dishes in Oxford. Chain products are grouped across physical branches for browsing, while every meal remains attached to the exact branch offering the user ate.
 
 ## Run locally
 
@@ -44,7 +44,7 @@ For provider-specific steps, rollback guidance, and a release checklist, see [DE
 
 ## Updating restaurant and dish data
 
-Catalogue data lives in Supabase, so a data-only update appears on the website without rebuilding or redeploying the React app. Maintain restaurant facts in `restaurants` and dish facts in `dishes`; do not edit the public catalogue views. Dish prices are nullable: use `NULL` when no reliable price is supplied. The UI labels those dishes “Price unavailable” and omits them from price constraints and price sorting.
+Catalogue data lives in Supabase, so a data-only update appears on the website without rebuilding or redeploying the React app. Maintain shared identities in `brands` and `canonical_dishes`, physical branches in `restaurants`, and branch-specific offerings in `dishes`; do not edit the public catalogue views. Dish prices are nullable: use `NULL` when no reliable price is supplied.
 
 Begin with the complete [dish data template](templates/plate-dish-data-template.yaml). For the field map, safe update sequence, provenance rules, and ready-to-adapt SQL examples, see [CATALOG_DATA_GUIDE.md](CATALOG_DATA_GUIDE.md).
 
@@ -58,6 +58,8 @@ Begin with the complete [dish data template](templates/plate-dish-data-template.
 ├── lib/                   # Data access, search/group ranking, and image handling
 ├── pages/                 # Home, restaurant, group search, and My Meals routes
 ├── supabase/migrations/   # Schema, RLS, storage policies, views, and seed data
+├── supabase/tests/        # pgTAP schema, integrity, aggregate, and RLS tests
+├── supabase/database.types.ts # Generated Supabase schema types
 ├── tests/                 # Search and group-matching unit tests
 ├── styles.css             # Plate's shared responsive visual system
 ├── main.jsx               # React browser entrypoint
@@ -69,7 +71,9 @@ Begin with the complete [dish data template](templates/plate-dish-data-template.
 
 ## Runtime behaviour and limitations
 
-- Restaurant, dish, rating, meal-history, and photo metadata are stored in Supabase. Public PlateScores come from database views over rating rows; restaurant scores are the rating-count-weighted mean of all their dishes.
+- Brands, physical branches, canonical dishes, branch offerings, ratings, meal history, and photo metadata are stored in Supabase. Public PlateScores come from a read-only aggregate boundary; raw rating comments and history remain private.
+- Homepage cards group one canonical dish within Oxford and show city-wide scores, price bounds, and all current locations. Restaurant pages and group search remain physical-branch based.
+- Logging a grouped dish requires selecting a branch. The saved `ratings.dish_id` is always the exact branch-specific `dishes.id`.
 - Public browsing uses safe catalogue views. Row Level Security limits profiles, rating rows, history, and private photo metadata to `auth.uid()`. Meal photos are stored in a private `meal-photos` bucket under a per-user path.
 - The interim account model creates an anonymous Supabase Auth identity and associates the entered email with its UUID. The email is held locally to keep the UI signed in. There is no email verification, password, cross-device recovery, or safe account switching until magic-link auth is added.
 - Because anonymous identities cannot be recovered after browser storage is cleared, this account model is suitable for the requested interim phase, not a final authentication system. Add CAPTCHA/Turnstile and abuse controls before broad public launch.
@@ -89,6 +93,8 @@ Begin with the complete [dish data template](templates/plate-dish-data-template.
 | `npm run build` | Create an optimized static build in `dist/` |
 | `npm run preview` | Serve the production build locally |
 | `npm test` | Run tokenised search and group-matching tests |
+| `npm run test:db` | Run the pgTAP suite against the local Supabase database |
+| `npm run types:generate` | Regenerate TypeScript database types from local Supabase |
 
 ## Configuration
 
