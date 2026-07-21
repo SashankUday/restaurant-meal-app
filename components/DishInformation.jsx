@@ -1,6 +1,9 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { availableBranchesForDish, isDishCurrentlyAvailable } from "../lib/catalog.js";
 import { formatCourse, formatDishPrice, formatPrice } from "../lib/constants.js";
+import { fetchDishFlagCounts } from "../lib/api.js";
+import DishCorrection from "./DishCorrection.jsx";
 
 const NUTRIENT_LABELS = {
   calories_kcal: ["Calories", "kcal"],
@@ -46,6 +49,11 @@ function EmptyInfo({ children = "Not supplied by the restaurant yet." }) {
   return <p className="info-empty">{children}</p>;
 }
 
+function CommunityMark({ entry }) {
+  if (!entry?.count) return null;
+  return <span className="community-mark" title="This value has community corrections">Edited by the community · {entry.count}</span>;
+}
+
 function InfoChips({ values, tone = "" }) {
   if (!hasValue(values)) return <EmptyInfo />;
   return <div className="tag-row info-chip-row">{values.map((value) => <span className={`tag ${tone}`} key={value}>{value}</span>)}</div>;
@@ -66,6 +74,18 @@ function MetadataRows({ value }) {
 }
 
 export default function DishInformation({ dish }) {
+  const [flagCounts, setFlagCounts] = useState({});
+  // Corrections are branch-level, so they only apply to a specific branch dish
+  // (not the grouped canonical view, which has no single dish_id).
+  const canCorrect = !dish.isGrouped && dish.id != null;
+
+  useEffect(() => {
+    if (!canCorrect) { setFlagCounts({}); return; }
+    let cancelled = false;
+    fetchDishFlagCounts(dish.id).then((counts) => { if (!cancelled) setFlagCounts(counts); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [dish.id, canCorrect]);
+
   const nutritionEntries = Object.entries(dish.nutrition || {}).filter(([key, value]) => key !== "micronutrients" && hasValue(value));
   const micronutrients = dish.nutrition?.micronutrients || {};
   const availability = dish.availability || {};
@@ -84,10 +104,20 @@ export default function DishInformation({ dish }) {
 
       <section className="info-section">
         <h3>At a glance</h3>
+        {canCorrect && (
+          <p className="info-name-correction">
+            <span>Dish name: <strong>{dish.name}</strong></span>
+            <CommunityMark entry={flagCounts.name} />
+            <DishCorrection dishId={dish.id} attribute="name" />
+          </p>
+        )}
         <dl className="info-grid">
           <div><dt>Menu section</dt><dd>{formatCourse(dish.course)}</dd></div>
           <div><dt>Meal occasion</dt><dd>{dish.mealOccasions?.length ? dish.mealOccasions.join(", ") : "Not supplied"}</dd></div>
-          <div><dt>Price</dt><dd>{formatDishPrice(dish)}</dd></div>
+          <div>
+            <dt>Price</dt>
+            <dd>{formatDishPrice(dish)}<CommunityMark entry={flagCounts.price} />{canCorrect && <DishCorrection dishId={dish.id} attribute="price" />}</dd>
+          </div>
           <div>
             <dt>Brand</dt>
             <dd>
@@ -144,8 +174,14 @@ export default function DishInformation({ dish }) {
       <details className="info-disclosure" open>
         <summary>Dietary and allergen information</summary>
         <div className="info-disclosure-body">
-          <div className="info-copy-block"><h4>Diets</h4><InfoChips values={dish.diets} tone="tag-diet" /></div>
-          <div className="info-copy-block"><h4>Official allergens</h4><InfoChips values={dish.allergens} /></div>
+          <div className="info-copy-block">
+            <h4>Diets <CommunityMark entry={flagCounts.diets} />{canCorrect && <DishCorrection dishId={dish.id} attribute="diets" currentValues={dish.diets} />}</h4>
+            <InfoChips values={dish.diets} tone="tag-diet" />
+          </div>
+          <div className="info-copy-block">
+            <h4>Official allergens <CommunityMark entry={flagCounts.allergens} />{canCorrect && <DishCorrection dishId={dish.id} attribute="allergens" currentValues={dish.allergens} />}</h4>
+            <InfoChips values={dish.allergens} />
+          </div>
           <div className="info-copy-block">
             <h4>Allergen verification</h4>
             <p>{dish.allergensVerified ? "Marked as verified in the restaurant data." : "Not marked as verified in the restaurant data."}</p>

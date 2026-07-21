@@ -96,6 +96,12 @@ img { max-width: 100%; }
 .meal-edit-btn { padding: 5px 12px; font-size: 12.5px; }
 .visit-note { color: var(--muted); font-style: normal; }
 .edit-visit-block { display: flex; flex-direction: column; gap: 8px; padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid var(--rim); }
+.dish-correction { display: inline-block; margin-left: 8px; }
+.correction-trigger { border: none; background: transparent; color: var(--accent); font-size: 12px; font-weight: 700; cursor: pointer; padding: 0; text-decoration: underline; }
+.correction-form { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; padding: 12px; border: 1.5px solid var(--rim); border-radius: 12px; background: var(--card); max-width: 340px; }
+.correction-done { margin-left: 8px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.community-mark { display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; color: var(--muted); }
+.info-name-correction { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-bottom: 10px; font-size: 13.5px; color: var(--muted); }
 
 .grid { max-width: 1120px; margin: 28px auto 0; padding: 0 clamp(18px, 5vw, 56px); display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 18px; }
 .card { background: var(--card); border: 1px solid var(--rim); border-radius: 20px; overflow: hidden; cursor: pointer; transition: transform 0.14s, box-shadow 0.14s; }
