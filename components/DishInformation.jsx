@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { availableBranchesForDish, isDishCurrentlyAvailable } from "../lib/catalog.js";
 import { formatCourse, formatDishPrice, formatPrice } from "../lib/constants.js";
 
@@ -87,7 +88,14 @@ export default function DishInformation({ dish }) {
           <div><dt>Menu section</dt><dd>{formatCourse(dish.course)}</dd></div>
           <div><dt>Meal occasion</dt><dd>{dish.mealOccasions?.length ? dish.mealOccasions.join(", ") : "Not supplied"}</dd></div>
           <div><dt>Price</dt><dd>{formatDishPrice(dish)}</dd></div>
-          <div><dt>Brand</dt><dd>{dish.brandName || dish.restaurantName || "Not supplied"}</dd></div>
+          <div>
+            <dt>Brand</dt>
+            <dd>
+              {!dish.isGrouped && dish.restaurantId ? (
+                <Link to={`/restaurant/${dish.restaurantId}`}>{dish.brandName || dish.restaurantName}</Link>
+              ) : (dish.brandName || dish.restaurantName || "Not supplied")}
+            </dd>
+          </div>
           {dish.isGrouped ? (
             <div><dt>Locations</dt><dd>{locationCount} in {dish.city}</dd></div>
           ) : (
@@ -95,11 +103,17 @@ export default function DishInformation({ dish }) {
           )}
           <div><dt>Location</dt><dd>{dish.isGrouped ? dish.city : [dish.area, dish.city].filter(Boolean).join(", ") || "Not supplied"}</dd></div>
           <div><dt>Currently available</dt><dd>{currentlyAvailable ? "Yes" : "No"}</dd></div>
-          <div><dt>Canonical dish ID</dt><dd>{dish.canonicalDishId}</dd></div>
-          {dish.marketCode && <div><dt>Market</dt><dd>{dish.marketCode}</dd></div>}
-          {dish.canonicalVersion != null && <div><dt>Canonical version</dt><dd>{dish.canonicalVersion}</dd></div>}
-          {dish.canonicalReviewStatus && <div><dt>Review status</dt><dd>{labelFor(dish.canonicalReviewStatus)}</dd></div>}
-          {!dish.isGrouped && <div><dt>Branch dish ID</dt><dd>{dish.id}</dd></div>}
+          {dish.isGrouped ? (
+            <>
+              <div><dt>{dish.city} score</dt><dd>{Number(dish.cityScore || 0).toFixed(1)} · {Number(dish.cityRatingCount || 0).toLocaleString()} ratings</dd></div>
+              <div><dt>Overall score</dt><dd>{Number(dish.overallScore || 0).toFixed(1)} · {Number(dish.overallRatingCount || 0).toLocaleString()} ratings</dd></div>
+            </>
+          ) : (
+            <>
+              <div><dt>Repeat-order rate</dt><dd>{dish.repeatOrderRate == null ? "Not enough data" : `${Math.round(dish.repeatOrderRate * 100)}%`}</dd></div>
+              <div><dt>Diner photos</dt><dd>{Number(dish.userPhotoCount || 0).toLocaleString()}</dd></div>
+            </>
+          )}
         </dl>
       </section>
 
@@ -142,25 +156,6 @@ export default function DishInformation({ dish }) {
       </details>
 
       <details className="info-disclosure">
-        <summary>Community experience</summary>
-        <div className="info-disclosure-body">
-          <dl className="metadata-rows">
-            {dish.isGrouped ? (
-              <>
-                <div><dt>{dish.city} score</dt><dd>{Number(dish.cityScore || 0).toFixed(1)} from {Number(dish.cityRatingCount || 0).toLocaleString()} ratings</dd></div>
-                <div><dt>Overall score</dt><dd>{Number(dish.overallScore || 0).toFixed(1)} from {Number(dish.overallRatingCount || 0).toLocaleString()} ratings</dd></div>
-              </>
-            ) : (
-              <>
-                <div><dt>Repeat-order rate</dt><dd>{dish.repeatOrderRate == null ? "Not enough data" : `${Math.round(dish.repeatOrderRate * 100)}%`}</dd></div>
-                <div><dt>User photos</dt><dd>{Number(dish.userPhotoCount || 0).toLocaleString()}</dd></div>
-              </>
-            )}
-          </dl>
-        </div>
-      </details>
-
-      <details className="info-disclosure">
         <summary>Availability</summary>
         <div className="info-disclosure-body">
           {dish.isGrouped ? (
@@ -177,15 +172,6 @@ export default function DishInformation({ dish }) {
           ) : <MetadataRows value={availability} />}
         </div>
       </details>
-
-      {hasValue(dish.dataSources) && (
-        <details className="info-disclosure">
-          <summary>Sources and verification</summary>
-          <div className="info-disclosure-body">
-            <MetadataRows value={dish.dataSources} />
-          </div>
-        </details>
-      )}
 
       <p className="data-freshness">Added {formatDate(dish.createdAt)} · Last updated {formatDate(dish.updatedAt)}</p>
     </div>
