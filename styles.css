@@ -88,6 +88,14 @@ img { max-width: 100%; }
 .searchable-option { display: block; width: 100%; text-align: left; border: none; background: transparent; color: var(--ink); font-size: 14.5px; padding: 9px 10px; border-radius: 9px; cursor: pointer; }
 .searchable-option:hover, .searchable-option.is-selected { background: var(--rim); }
 .searchable-empty { padding: 10px; color: var(--muted); font-size: 13.5px; }
+.visit-dish-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.visit-dish-remove { border: none; background: transparent; color: inherit; cursor: pointer; font-size: 15px; margin-left: 6px; padding: 0; line-height: 1; }
+.visit-add-dish { max-width: 420px; }
+.visit-prompt { display: flex; flex-direction: column; gap: 10px; }
+.meal-history-score { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.meal-edit-btn { padding: 5px 12px; font-size: 12.5px; }
+.visit-note { color: var(--muted); font-style: normal; }
+.edit-visit-block { display: flex; flex-direction: column; gap: 8px; padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid var(--rim); }
 
 .grid { max-width: 1120px; margin: 28px auto 0; padding: 0 clamp(18px, 5vw, 56px); display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 18px; }
 .card { background: var(--card); border: 1px solid var(--rim); border-radius: 20px; overflow: hidden; cursor: pointer; transition: transform 0.14s, box-shadow 0.14s; }
