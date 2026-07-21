@@ -13,7 +13,7 @@ function validEmail(email) {
 }
 
 async function getProfile(userId) {
-  const { data, error } = await supabase.from("profiles").select("id, email").eq("id", userId).maybeSingle();
+  const { data, error } = await supabase.from("profiles").select("id, email, dietary_requirements").eq("id", userId).maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -70,7 +70,7 @@ export function AuthProvider({ children }) {
       }
 
       if (!existing) {
-        const created = await supabase.from("profiles").insert({ id: authUser.id, email }).select("id, email").single();
+        const created = await supabase.from("profiles").insert({ id: authUser.id, email }).select("id, email, dietary_requirements").single();
         if (created.error) {
           if (created.error.code === "23505") {
             throw new Error("That email belongs to a session on another browser. Cross-device sign-in will be available when magic links are enabled.");
