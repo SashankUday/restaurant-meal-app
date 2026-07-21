@@ -13,3 +13,4 @@ dist/
 .vercel/
 .netlify/
 supabase/.temp/
+HANDOFF.md
