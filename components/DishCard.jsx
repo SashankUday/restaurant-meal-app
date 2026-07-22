@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
-import { formatDishPrice } from "../lib/constants.js";
+import { CHEFS_SPECIAL_BADGE, formatDishPrice } from "../lib/constants.js";
+import { blockedIngredientMatches } from "../lib/search.js";
 import PlateScore from "./PlateScore.jsx";
 
-export default function DishCard({ dish, onOpen }) {
+export default function DishCard({ dish, onOpen, blockedIngredients }) {
+  const blockedMatches = blockedIngredientMatches(dish, blockedIngredients);
   const topTags = Object.entries(dish.tagCounts || {}).sort((a, b) => b[1] - a[1]).slice(0, 3);
   const openDish = () => onOpen?.(dish.id);
   const locationCount = dish.locationCount || new Set((dish.branches || []).map((branch) => branch.restaurantId)).size;
@@ -31,10 +33,16 @@ export default function DishCard({ dish, onOpen }) {
           <span className="sponsored-note">Paid placement — never affects rankings</span>
         </div>
       )}
+      {blockedMatches.length > 0 && (
+        <div className="sponsored-band" style={{ background: "#fdecea", color: "#9c2b1f" }}>
+          <span>Contains blocked ingredient</span>
+          <span className="sponsored-note">{blockedMatches.join(", ")}</span>
+        </div>
+      )}
       <div className="card-body">
         <div className="card-top">
           <div>
-            <h3 className="dish-name">{dish.name}</h3>
+            <h3 className="dish-name">{dish.name}{dish.badges?.includes(CHEFS_SPECIAL_BADGE) && <span className="tag tag-badge">★ Chef's special</span>}</h3>
             <p className="dish-where">
               {dish.isGrouped ? whereLabel : (
                 <>
