@@ -5,25 +5,17 @@ import { createMeal, fetchUserRatingForDish } from "../lib/api.js";
 import { RATING_TAGS } from "../lib/constants.js";
 import { validatePhotoSelection } from "../lib/image.js";
 import Chip from "./Chip.jsx";
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function cleanCustomTag(tag) {
-  return tag.trim().replace(/\s+/g, " ").slice(0, 30);
-}
+import TagPicker from "./TagPicker.jsx";
 
 // The rating step, identical whether reached via "Log Meal" (with a visitId) or
 // a bare "Rate" (visitId null). It never shows a branch picker — the dish/branch
 // is already resolved by the caller. On success it hands back the new rating id.
-export default function RatingForm({ dish, dishId, visitId = null, visitedAt, heading, progressLabel, onSaved }) {
+export default function RatingForm({ dish, dishId, visitId = null, heading, progressLabel, onSaved }) {
   const { user } = useAuth();
   const { refresh } = useAppData();
   const [score, setScore] = useState(null);
   const [wouldOrderAgain, setWouldOrderAgain] = useState(null);
   const [tags, setTags] = useState([]);
-  const [customTag, setCustomTag] = useState("");
   const [comment, setComment] = useState("");
   const [files, setFiles] = useState([]);
   const [photosPrivate, setPhotosPrivate] = useState(false);
@@ -47,20 +39,6 @@ export default function RatingForm({ dish, dishId, visitId = null, visitedAt, he
     }).catch(() => {});
     return () => { cancelled = true; };
   }, [user, dish.canonicalDishId]);
-
-  function toggleTag(tag) {
-    setTags((current) => {
-      if (current.includes(tag)) return current.filter((item) => item !== tag);
-      return current.length < 8 ? [...current, tag] : current;
-    });
-  }
-
-  function addCustomTag() {
-    const nextTag = cleanCustomTag(customTag);
-    if (!nextTag || tags.some((tag) => tag.toLowerCase() === nextTag.toLowerCase()) || tags.length >= 8) return;
-    setTags((current) => [...current, nextTag]);
-    setCustomTag("");
-  }
 
   function chooseFiles(event) {
     const selection = Array.from(event.target.files || []);
@@ -88,7 +66,6 @@ export default function RatingForm({ dish, dishId, visitId = null, visitedAt, he
         score,
         tags,
         comment,
-        visitedAt: visitedAt || existingRating?.visitedAt || today(),
         photos: files,
         photosPrivate,
         wouldOrderAgain,
@@ -143,34 +120,7 @@ export default function RatingForm({ dish, dishId, visitId = null, visitedAt, he
         </div>
       </fieldset>
 
-      <fieldset className="fieldset-reset">
-        <legend className="section-label">Describe it <span className="optional">up to 8</span></legend>
-        <div className="rate-tags">
-          {RATING_TAGS.map((tag) => (
-            <Chip key={tag} active={tags.includes(tag)} onClick={() => toggleTag(tag)}>{tag}</Chip>
-          ))}
-          {tags.filter((tag) => !RATING_TAGS.includes(tag)).map((tag) => (
-            <Chip key={tag} active onClick={() => toggleTag(tag)}>{tag} ×</Chip>
-          ))}
-        </div>
-        <div className="custom-tag-row">
-          <input
-            className="text-input"
-            value={customTag}
-            maxLength={30}
-            onChange={(event) => setCustomTag(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                addCustomTag();
-              }
-            }}
-            placeholder="Add your own descriptor"
-            aria-label="Custom descriptor tag"
-          />
-          <button type="button" className="btn-quiet" onClick={addCustomTag} disabled={!customTag.trim() || tags.length >= 8}>Add tag</button>
-        </div>
-      </fieldset>
+      <TagPicker presetTags={RATING_TAGS} tags={tags} onChange={setTags} label="Describe it" ariaLabel="Custom descriptor tag" />
 
       <label className="field-label" htmlFor={`comment-${dishId}`}>Comment <span className="optional">optional</span></label>
       <textarea

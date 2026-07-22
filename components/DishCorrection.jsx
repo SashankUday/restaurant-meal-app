@@ -11,7 +11,7 @@ const ATTRIBUTE_LABELS = { diets: "diet", allergens: "allergen", price: "price",
 // security-definer RPC (which enforces the 24h-per-field rate limit), so on
 // success we just refresh the catalogue to show the new value.
 export default function DishCorrection({ dishId, attribute, currentValues = [] }) {
-  const { user } = useAuth();
+  const { user, canEdit } = useAuth();
   const { refresh } = useAppData();
   const [open, setOpen] = useState(false);
   const [action, setAction] = useState(attribute === "diets" || attribute === "allergens" ? "add" : "correct");
@@ -20,7 +20,7 @@ export default function DishCorrection({ dishId, attribute, currentValues = [] }
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
 
-  if (!user || !dishId) return null;
+  if (!user || !dishId || !canEdit) return null;
 
   const isList = attribute === "diets" || attribute === "allergens";
   const options = isList

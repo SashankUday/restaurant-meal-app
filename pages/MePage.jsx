@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useAppData } from "../context/AppDataContext.jsx";
-import { isDishCurrentlyAvailable } from "../lib/catalog.js";
-import { fetchMealHistory } from "../lib/api.js";
+import { availableBranchesForDish, groupCityDishes, isDishCurrentlyAvailable } from "../lib/catalog.js";
+import { formatTag } from "../lib/constants.js";
+import { deleteRating, fetchMealHistory } from "../lib/api.js";
 import { tokenizeQuery } from "../lib/search.js";
 import AccountSignIn from "../components/AccountSignIn.jsx";
 import { LoadingState } from "../components/AsyncState.jsx";
@@ -18,18 +19,21 @@ function formatVisitDate(value) {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${value}T12:00:00`));
 }
 
-function MealHistoryCard({ meal, onEdit }) {
+function MealHistoryCard({ meal, onEdit, onDelete }) {
   return (
     <article className="meal-history-card">
       <div className="meal-history-main">
         <div>
-          <p className="eyebrow">{formatVisitDate(meal.visitedAt)}</p>
+          <p className="eyebrow">{meal.visit?.visitedAt ? formatVisitDate(meal.visit.visitedAt) : "No visit logged"}</p>
           <h3><Link to={`/restaurant/${meal.restaurant.id}?dish=${meal.dish.id}`}>{meal.dish.name}</Link></h3>
           <p className="dish-where"><Link to={`/restaurant/${meal.restaurant.id}`}>{meal.restaurant.name}</Link> · {meal.restaurant.area}</p>
         </div>
         <div className="meal-history-score">
           <PlateScore score={meal.score} />
-          <button type="button" className="btn-quiet meal-edit-btn" onClick={() => onEdit(meal)}>Edit</button>
+          <div className="chip-row">
+            <button type="button" className="btn-quiet meal-edit-btn" onClick={() => onEdit(meal)}>Edit</button>
+            <button type="button" className="btn-quiet meal-edit-btn" onClick={() => onDelete(meal)}>Delete</button>
+          </div>
         </div>
       </div>
       {meal.visit?.notes && <p className="meal-comment visit-note">{meal.visit.notes}</p>}
@@ -39,7 +43,7 @@ function MealHistoryCard({ meal, onEdit }) {
           <span>Order again <strong>{meal.wouldOrderAgain ? "Yes" : "No"}</strong></span>
         </div>
       )}
-      {meal.tags.length > 0 && <div className="tag-row">{meal.tags.map((tag) => <span className="tag" key={tag}>{tag}</span>)}</div>}
+      {meal.tags.length > 0 && <div className="tag-row">{meal.tags.map((tag) => <span className="tag" key={tag}>{formatTag(tag)}</span>)}</div>}
       {meal.photos.length > 0 && (
         <div className="history-photo-row">
           {meal.photos.map((photo) => photo.url && <a key={photo.id} href={photo.url} target="_blank" rel="noreferrer"><img src={photo.url} alt={`${meal.dish.name} from this visit`} /></a>)}
@@ -61,6 +65,22 @@ export default function MePage() {
   const [selectedDishId, setSelectedDishId] = useState("");
   const [mealSaved, setMealSaved] = useState(false);
   const [editingMeal, setEditingMeal] = useState(null);
+  const [logMode, setLogMode] = useState("restaurant");
+  const [selectedCanonicalDishId, setSelectedCanonicalDishId] = useState("");
+
+  const groupedDishesForLog = useMemo(() => groupCityDishes(dishes, "Oxford"), [dishes]);
+  const selectedGroupedDish = groupedDishesForLog.find((dish) => String(dish.id) === selectedCanonicalDishId);
+  const brancheOptionsForLog = selectedGroupedDish ? availableBranchesForDish(selectedGroupedDish, { city: "Oxford" }) : [];
+
+  async function handleDeleteMeal(meal) {
+    if (!window.confirm(`Delete your rating of ${meal.dish.name}? This cannot be undone.`)) return;
+    try {
+      await deleteRating({ ratingId: meal.id, userId: user.id });
+      await loadHistory();
+    } catch (error) {
+      window.alert(error.message || "This rating could not be deleted.");
+    }
+  }
 
   const loadHistory = useCallback(async () => {
     if (!user) return;
@@ -129,13 +149,60 @@ export default function MePage() {
           <div><p className="eyebrow">Add a visit</p><h2>What did you eat?</h2></div>
           <span>Ratings saved here feed public PlateScores.</span>
         </div>
+        <div className="sorts" aria-label="Find by">
+          <button type="button" className={`sort-btn ${logMode === "restaurant" ? "sort-on" : ""}`} onClick={() => setLogMode("restaurant")}>By restaurant</button>
+          <button type="button" className={`sort-btn ${logMode === "meal" ? "sort-on" : ""}`} onClick={() => setLogMode("meal")}>By meal</button>
+        </div>
+        {logMode === "meal" && (
+          <div className="meal-pickers">
+            <label>
+              <span className="field-label">Meal</span>
+              <SearchableSelect
+                value={selectedCanonicalDishId}
+                placeholder="Search any dish"
+                onChange={(next) => {
+                  setSelectedCanonicalDishId(String(next));
+                  setSelectedRestaurantId("");
+                  setSelectedDishId("");
+                  setMealSaved(false);
+                }}
+                options={groupedDishesForLog.map((dish) => ({ value: dish.id, label: `${dish.name} · ${dish.brandName}` }))}
+              />
+            </label>
+            {selectedGroupedDish && (
+              <label>
+                <span className="field-label">Where did you have it?</span>
+                <SearchableSelect
+                  value={selectedDishId}
+                  placeholder="Choose the branch"
+                  onChange={(next) => {
+                    const branch = brancheOptionsForLog.find((item) => String(item.dishId) === String(next));
+                    setSelectedDishId(String(next));
+                    setSelectedRestaurantId(branch ? String(branch.restaurantId) : "");
+                    setMealSaved(false);
+                  }}
+                  options={brancheOptionsForLog.map((branch) => ({
+                    value: branch.dishId,
+                    label: `${branch.branchName || branch.restaurantName} · ${branch.area}`,
+                  }))}
+                />
+              </label>
+            )}
+          </div>
+        )}
+        {logMode === "restaurant" && (
         <div className="meal-pickers">
           <label>
             <span className="field-label">Restaurant</span>
-            <select className="select-input" value={selectedRestaurantId} onChange={(event) => { setSelectedRestaurantId(event.target.value); setMealSaved(false); }}>
-              <option value="">Choose a restaurant</option>
-              {restaurants.map((restaurant) => <option key={restaurant.id} value={restaurant.id}>{restaurant.name} · {restaurant.area}</option>)}
-            </select>
+            <SearchableSelect
+              value={selectedRestaurantId}
+              placeholder="Search restaurants"
+              onChange={(next) => { setSelectedRestaurantId(String(next)); setMealSaved(false); }}
+              options={restaurants.map((restaurant) => ({
+                value: restaurant.id,
+                label: `${restaurant.name} · ${restaurant.area}`,
+              }))}
+            />
           </label>
           <label>
             <span className="field-label">Dish</span>
@@ -153,6 +220,7 @@ export default function MePage() {
             />
           </label>
         </div>
+        )}
         {selectedDish && !mealSaved && (
           <div className="embedded-meal-form"><MealForm key={selectedDish.id} dish={selectedDish} initialDishId={selectedDish.id} onSaved={async () => { await loadHistory(); setMealSaved(true); }} /></div>
         )}
@@ -187,7 +255,7 @@ export default function MePage() {
         {historyLoading ? <LoadingState label="Loading your visits…" /> : historyError ? (
           <div className="status-card status-error"><p>{historyError}</p><button type="button" className="btn-quiet" onClick={loadHistory}>Try again</button></div>
         ) : filteredMeals.length ? (
-          <div className="history-list">{filteredMeals.map((meal) => <MealHistoryCard key={meal.id} meal={meal} onEdit={setEditingMeal} />)}</div>
+          <div className="history-list">{filteredMeals.map((meal) => <MealHistoryCard key={meal.id} meal={meal} onEdit={setEditingMeal} onDelete={handleDeleteMeal} />)}</div>
         ) : (
           <div className="empty">
             <p className="empty-title">{meals.length ? "No past meals match that search." : "Your first meal is waiting."}</p>

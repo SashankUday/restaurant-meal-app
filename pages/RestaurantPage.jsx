@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useAppData } from "../context/AppDataContext.jsx";
 import { isDishCurrentlyAvailable } from "../lib/catalog.js";
 import { countActiveConstraints, COURSES, EMPTY_FILTERS, formatCourse } from "../lib/constants.js";
@@ -9,14 +10,17 @@ import DishCard from "../components/DishCard.jsx";
 import DishModal from "../components/DishModal.jsx";
 import Filters from "../components/Filters.jsx";
 import PlateScore from "../components/PlateScore.jsx";
+import RestaurantEditForm from "../components/RestaurantEditForm.jsx";
 
 export default function RestaurantPage() {
   const { id } = useParams();
   const restaurantId = Number(id);
+  const { canEdit } = useAuth();
   const { dishes, restaurants, loading, error, refresh } = useAppData();
   const [sort, setSort] = useState("rating");
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [showFilters, setShowFilters] = useState(false);
+  const [editingRestaurant, setEditingRestaurant] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const openId = Number(searchParams.get("dish")) || null;
   const restaurant = restaurants.find((item) => item.id === restaurantId);
@@ -66,6 +70,16 @@ export default function RestaurantPage() {
             <h1>{restaurant.name}</h1>
             {restaurant.brandName && restaurant.brandName !== restaurant.name && <p className="restaurant-chain">Part of {restaurant.brandName}</p>}
             <p>{restaurant.description}</p>
+            {canEdit && !editingRestaurant && (
+              <button type="button" className="btn-quiet" onClick={() => setEditingRestaurant(true)}>Edit restaurant</button>
+            )}
+            {editingRestaurant && (
+              <RestaurantEditForm
+                restaurant={restaurant}
+                onSaved={refresh}
+                onClose={() => setEditingRestaurant(false)}
+              />
+            )}
           </div>
           <div className="restaurant-score">
             <PlateScore score={restaurant.score} size={86} ratingCount={restaurant.ratingCount} />

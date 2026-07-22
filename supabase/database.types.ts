@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       brands: {
@@ -241,9 +216,66 @@ export type Database = {
           },
         ]
       }
+      dish_attribute_flags: {
+        Row: {
+          action: string
+          applied_at: string | null
+          attribute: string
+          created_at: string
+          dish_id: number
+          id: number
+          user_id: string
+          value: Json
+        }
+        Insert: {
+          action: string
+          applied_at?: string | null
+          attribute: string
+          created_at?: string
+          dish_id: number
+          id?: number
+          user_id: string
+          value: Json
+        }
+        Update: {
+          action?: string
+          applied_at?: string | null
+          attribute?: string
+          created_at?: string
+          dish_id?: number
+          id?: number
+          user_id?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dish_attribute_flags_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dish_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_attribute_flags_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_attribute_flags_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dish_rating_rollups: {
         Row: {
           dish_id: number
+          legacy_rating_count: number
+          legacy_score_sum: number
           rating_count: number
           rating_tag_counts: Json
           repeat_response_count: number
@@ -254,6 +286,8 @@ export type Database = {
         }
         Insert: {
           dish_id: number
+          legacy_rating_count?: number
+          legacy_score_sum?: number
           rating_count?: number
           rating_tag_counts?: Json
           repeat_response_count?: number
@@ -264,6 +298,8 @@ export type Database = {
         }
         Update: {
           dish_id?: number
+          legacy_rating_count?: number
+          legacy_score_sum?: number
           rating_count?: number
           rating_tag_counts?: Json
           repeat_response_count?: number
@@ -297,6 +333,7 @@ export type Database = {
           availability: Json
           available_from: string | null
           available_until: string | null
+          badges: string[]
           brand_id: number
           canonical_dish_id: number
           course: string
@@ -312,6 +349,7 @@ export type Database = {
           local_overrides: Json
           meal_occasions: string[]
           menu_position: number
+          menu_tags: string[]
           name: string
           nutrition: Json
           official_image_url: string | null
@@ -329,6 +367,7 @@ export type Database = {
           availability?: Json
           available_from?: string | null
           available_until?: string | null
+          badges?: string[]
           brand_id: number
           canonical_dish_id: number
           course?: string
@@ -344,6 +383,7 @@ export type Database = {
           local_overrides?: Json
           meal_occasions?: string[]
           menu_position?: number
+          menu_tags?: string[]
           name: string
           nutrition?: Json
           official_image_url?: string | null
@@ -361,6 +401,7 @@ export type Database = {
           availability?: Json
           available_from?: string | null
           available_until?: string | null
+          badges?: string[]
           brand_id?: number
           canonical_dish_id?: number
           course?: string
@@ -376,6 +417,7 @@ export type Database = {
           local_overrides?: Json
           meal_occasions?: string[]
           menu_position?: number
+          menu_tags?: string[]
           name?: string
           nutrition?: Json
           official_image_url?: string | null
@@ -410,19 +452,73 @@ export type Database = {
           },
         ]
       }
-      profiles: {
+      edit_access_requests: {
         Row: {
           created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          email: string
+          id: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          email: string
+          id?: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string
+          id?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "edit_access_requests_decided_by_fkey"
+            columns: ["decided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "edit_access_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          blocked_ingredients: string[]
+          can_edit: boolean
+          created_at: string
+          dietary_requirements: string[]
           email: string
           id: string
         }
         Insert: {
+          blocked_ingredients?: string[]
+          can_edit?: boolean
           created_at?: string
+          dietary_requirements?: string[]
           email: string
           id: string
         }
         Update: {
+          blocked_ingredients?: string[]
+          can_edit?: boolean
           created_at?: string
+          dietary_requirements?: string[]
           email?: string
           id?: string
         }
@@ -432,6 +528,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_private: boolean
           mime_type: string
           rating_id: string
           size_bytes: number
@@ -441,6 +538,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_private?: boolean
           mime_type: string
           rating_id: string
           size_bytes: number
@@ -450,6 +548,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_private?: boolean
           mime_type?: string
           rating_id?: string
           size_bytes?: number
@@ -468,6 +567,7 @@ export type Database = {
       }
       ratings: {
         Row: {
+          canonical_dish_id: number
           comment: string
           created_at: string
           dish_id: number
@@ -475,10 +575,12 @@ export type Database = {
           score: number
           tags: string[]
           user_id: string
-          visited_at: string
+          visit_id: number | null
+          visited_at: string | null
           would_order_again: boolean | null
         }
         Insert: {
+          canonical_dish_id: number
           comment?: string
           created_at?: string
           dish_id: number
@@ -486,10 +588,12 @@ export type Database = {
           score: number
           tags?: string[]
           user_id: string
-          visited_at?: string
+          visit_id?: number | null
+          visited_at?: string | null
           would_order_again?: boolean | null
         }
         Update: {
+          canonical_dish_id?: number
           comment?: string
           created_at?: string
           dish_id?: number
@@ -497,7 +601,8 @@ export type Database = {
           score?: number
           tags?: string[]
           user_id?: string
-          visited_at?: string
+          visit_id?: number | null
+          visited_at?: string | null
           would_order_again?: boolean | null
         }
         Relationships: [
@@ -513,6 +618,65 @@ export type Database = {
             columns: ["dish_id"]
             isOneToOne: false
             referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ratings_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_attribute_flags: {
+        Row: {
+          applied_at: string | null
+          attribute: string
+          created_at: string
+          id: number
+          restaurant_id: number
+          user_id: string
+          value: Json
+        }
+        Insert: {
+          applied_at?: string | null
+          attribute: string
+          created_at?: string
+          id?: number
+          restaurant_id: number
+          user_id: string
+          value: Json
+        }
+        Update: {
+          applied_at?: string | null
+          attribute?: string
+          created_at?: string
+          id?: number
+          restaurant_id?: number
+          user_id?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_attribute_flags_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_attribute_flags_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_attribute_flags_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -531,6 +695,7 @@ export type Database = {
           id: number
           latitude: number
           longitude: number
+          menu_windows: Json
           name: string
           updated_at: string
         }
@@ -547,6 +712,7 @@ export type Database = {
           id?: number
           latitude: number
           longitude: number
+          menu_windows?: Json
           name: string
           updated_at?: string
         }
@@ -563,6 +729,7 @@ export type Database = {
           id?: number
           latitude?: number
           longitude?: number
+          menu_windows?: Json
           name?: string
           updated_at?: string
         }
@@ -576,8 +743,81 @@ export type Database = {
           },
         ]
       }
+      visits: {
+        Row: {
+          created_at: string
+          id: number
+          notes: string
+          restaurant_id: number
+          user_id: string
+          visited_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          notes?: string
+          restaurant_id: number
+          user_id: string
+          visited_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          notes?: string
+          restaurant_id?: number
+          user_id?: string
+          visited_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visits_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
+      dish_attribute_flag_counts: {
+        Row: {
+          attribute: string | null
+          dish_id: number | null
+          flag_count: number | null
+          last_edited_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dish_attribute_flags_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dish_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_attribute_flags_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dish_catalog: {
         Row: {
           allergen_details: Json | null
@@ -587,6 +827,7 @@ export type Database = {
           availability: Json | null
           available_from: string | null
           available_until: string | null
+          badges: string[] | null
           branch_count: number | null
           branch_name: string | null
           branch_rating_count: number | null
@@ -621,6 +862,8 @@ export type Database = {
           max_price: number | null
           meal_occasions: string[] | null
           menu_position: number | null
+          menu_tags: string[] | null
+          menu_windows: Json | null
           min_price: number | null
           name: string | null
           nutrition: Json | null
@@ -665,6 +908,31 @@ export type Database = {
           },
         ]
       }
+      dish_photos: {
+        Row: {
+          canonical_dish_id: number | null
+          created_at: string | null
+          dish_id: number | null
+          id: string | null
+          storage_path: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ratings_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dish_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ratings_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_catalog: {
         Row: {
           active_dish_count: number | null
@@ -681,6 +949,7 @@ export type Database = {
           id: number | null
           latitude: number | null
           longitude: number | null
+          menu_windows: Json | null
           name: string | null
           rating_count: number | null
           score: number | null
@@ -698,7 +967,30 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      approve_edit_access: {
+        Args: { target_email: string }
+        Returns: undefined
+      }
+      is_plate_admin: { Args: never; Returns: boolean }
+      reject_edit_access: { Args: { target_email: string }; Returns: undefined }
+      request_edit_access: { Args: never; Returns: number }
+      submit_dish_attribute_flag: {
+        Args: {
+          correction_action: string
+          correction_value: Json
+          target_attribute: string
+          target_dish_id: number
+        }
+        Returns: number
+      }
+      update_restaurant_info: {
+        Args: {
+          new_value: string
+          target_attribute: string
+          target_restaurant_id: number
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
@@ -827,9 +1119,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

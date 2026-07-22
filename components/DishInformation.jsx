@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
+import { useAppData } from "../context/AppDataContext.jsx";
 import { availableBranchesForDish, isDishCurrentlyAvailable } from "../lib/catalog.js";
-import { formatCourse, formatDishPrice, formatPrice } from "../lib/constants.js";
-import { fetchDishFlagCounts } from "../lib/api.js";
+import { CHEFS_SPECIAL_BADGE, formatCourse, formatDishPrice, formatPrice } from "../lib/constants.js";
+import { fetchDishFlagCounts, submitDishAttributeFlag } from "../lib/api.js";
 import DishCorrection from "./DishCorrection.jsx";
 
 const NUTRIENT_LABELS = {
@@ -74,10 +76,16 @@ function MetadataRows({ value }) {
 }
 
 export default function DishInformation({ dish }) {
+  const { user, canEdit } = useAuth();
+  const { refresh } = useAppData();
   const [flagCounts, setFlagCounts] = useState({});
+  const [editOpen, setEditOpen] = useState(false);
+  const [badgeSaving, setBadgeSaving] = useState(false);
+  const [badgeError, setBadgeError] = useState("");
   // Corrections are branch-level, so they only apply to a specific branch dish
   // (not the grouped canonical view, which has no single dish_id).
-  const canCorrect = !dish.isGrouped && dish.id != null;
+  const canCorrect = !dish.isGrouped && dish.id != null && canEdit;
+  const hasChefsSpecial = (dish.badges || []).includes(CHEFS_SPECIAL_BADGE);
 
   useEffect(() => {
     if (!canCorrect) { setFlagCounts({}); return; }
@@ -85,6 +93,24 @@ export default function DishInformation({ dish }) {
     fetchDishFlagCounts(dish.id).then((counts) => { if (!cancelled) setFlagCounts(counts); }).catch(() => {});
     return () => { cancelled = true; };
   }, [dish.id, canCorrect]);
+
+  async function toggleChefsSpecial() {
+    setBadgeSaving(true);
+    setBadgeError("");
+    try {
+      await submitDishAttributeFlag({
+        dishId: dish.id,
+        attribute: "badges",
+        action: hasChefsSpecial ? "remove" : "add",
+        value: CHEFS_SPECIAL_BADGE,
+      });
+      await refresh();
+    } catch (error) {
+      setBadgeError(error.message || "That could not be saved.");
+    } finally {
+      setBadgeSaving(false);
+    }
+  }
 
   const nutritionEntries = Object.entries(dish.nutrition || {}).filter(([key, value]) => key !== "micronutrients" && hasValue(value));
   const micronutrients = dish.nutrition?.micronutrients || {};
@@ -96,6 +122,30 @@ export default function DishInformation({ dish }) {
 
   return (
     <div className="dish-information">
+      {!dish.isGrouped && dish.id != null && (
+        user && canEdit ? (
+          <div className="edit-dish-toggle">
+            <button type="button" className="btn-quiet" onClick={() => setEditOpen((value) => !value)}>
+              {editOpen ? "Done editing" : "Edit dish"}
+            </button>
+            {editOpen && (
+              <p className="field-help">
+                Edit name, price, diets and allergens inline below, or toggle Chef's special.
+              </p>
+            )}
+            {editOpen && (
+              <div className="chip-row">
+                <button type="button" className={`chip ${hasChefsSpecial ? "chip-on" : ""}`} onClick={toggleChefsSpecial} disabled={badgeSaving}>
+                  ★ Chef's special
+                </button>
+              </div>
+            )}
+            {badgeError && <p className="form-error" role="alert">{badgeError}</p>}
+          </div>
+        ) : user ? (
+          <p className="field-help">Want to edit this dish? <Link to="/account">Request edit access</Link>.</p>
+        ) : null
+      )}
       {dish.officialImageUrl && (
         <div className="official-media-row">
           <img src={dish.officialImageUrl} alt={dish.name} />
@@ -129,7 +179,15 @@ export default function DishInformation({ dish }) {
           {dish.isGrouped ? (
             <div><dt>Locations</dt><dd>{locationCount} in {dish.city}</dd></div>
           ) : (
-            <div><dt>Branch</dt><dd>{dish.branchName || dish.area || "Not supplied"}</dd></div>
+            <div>
+              <dt>Branch</dt>
+              <dd>
+                {dish.branchName || dish.area || "Not supplied"}
+                {dish.canonicalDishId && (
+                  <>{" · "}<Link to={`/?dish=${dish.canonicalDishId}`}>See this dish at all locations</Link></>
+                )}
+              </dd>
+            </div>
           )}
           <div><dt>Location</dt><dd>{dish.isGrouped ? dish.city : [dish.area, dish.city].filter(Boolean).join(", ") || "Not supplied"}</dd></div>
           <div><dt>Currently available</dt><dd>{currentlyAvailable ? "Yes" : "No"}</dd></div>

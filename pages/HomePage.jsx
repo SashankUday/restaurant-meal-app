@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 import { useAppData } from "../context/AppDataContext.jsx";
 import { groupCityDishes } from "../lib/catalog.js";
 import { countActiveConstraints, EMPTY_FILTERS } from "../lib/constants.js";
@@ -14,10 +15,21 @@ import RestaurantCard from "../components/RestaurantCard.jsx";
 const CATALOGUE_CITY = "Oxford";
 
 export default function HomePage() {
+  const { user } = useAuth();
   const { dishes, restaurants, loading, error, refresh } = useAppData();
   const [query, setQuery] = useState("");
   const [searchMode, setSearchMode] = useState("dishes");
   const [filters, setFilters] = useState(EMPTY_FILTERS);
+
+  useEffect(() => {
+    if (!user) return;
+    setFilters((current) => ({
+      ...current,
+      diets: user.dietary_requirements?.length ? user.dietary_requirements : current.diets,
+      blockedIngredients: user.blocked_ingredients || [],
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
   const [sort, setSort] = useState("top");
   const [showFilters, setShowFilters] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -102,15 +114,18 @@ export default function HomePage() {
       </section>
 
       {loading ? <LoadingState label="Finding Oxford’s best dishes…" /> : error ? <ErrorState message={error} onRetry={refresh} /> : searchMode === "restaurants" ? (
-        <main className="grid">
-          {restaurantResults.map((restaurant) => <RestaurantCard key={restaurant.id} restaurant={restaurant} />)}
-          {restaurantResults.length === 0 && (
-            <div className="empty">
-              <p className="empty-title">No Oxford restaurants match that search.</p>
-              <p>Try a shorter search, a cuisine, or an area name.</p>
-            </div>
-          )}
-        </main>
+        <>
+          <MapPanel restaurants={restaurantResults} />
+          <main className="grid">
+            {restaurantResults.map((restaurant) => <RestaurantCard key={restaurant.id} restaurant={restaurant} />)}
+            {restaurantResults.length === 0 && (
+              <div className="empty">
+                <p className="empty-title">No Oxford restaurants match that search.</p>
+                <p>Try a shorter search, a cuisine, or an area name.</p>
+              </div>
+            )}
+          </main>
+        </>
       ) : (
         <>
           <div className="controls">
@@ -128,8 +143,8 @@ export default function HomePage() {
           <MapPanel restaurants={matchingRestaurants} />
 
           <main className="grid">
-            {sponsored && <DishCard dish={sponsored} onOpen={setOpenDish} />}
-            {organicResults.map((dish) => <DishCard key={dish.id} dish={dish} onOpen={setOpenDish} />)}
+            {sponsored && <DishCard dish={sponsored} onOpen={setOpenDish} blockedIngredients={filters.blockedIngredients} />}
+            {organicResults.map((dish) => <DishCard key={dish.id} dish={dish} onOpen={setOpenDish} blockedIngredients={filters.blockedIngredients} />)}
             {organicResults.length === 0 && !sponsored && (
               <div className="empty">
                 <p className="empty-title">Nothing matches every part of that craving.</p>
