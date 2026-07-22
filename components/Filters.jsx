@@ -69,17 +69,22 @@ export default function Filters({ filters, onChange }) {
       </div>
       <div className="filter-group">
         <span className="filter-label">Diet</span>
-        <div className="chip-row">
-          {DIETS.map((diet) => (
-            <Chip
-              key={diet}
-              active={filters.diets.includes(diet)}
-              onClick={() => onChange({ ...filters, diets: toggleValue(filters.diets, diet) })}
-            >
-              {diet}
-            </Chip>
-          ))}
-        </div>
+        <p className="filter-note">Applying your saved dietary requirements from Account.</p>
+        <details className="diet-override-disclosure">
+          <summary>Adjust diet for today</summary>
+          <div className="chip-row">
+            {DIETS.map((diet) => (
+              <Chip
+                key={diet}
+                active={filters.diets.includes(diet)}
+                onClick={() => onChange({ ...filters, diets: toggleValue(filters.diets, diet) })}
+              >
+                {diet}
+              </Chip>
+            ))}
+          </div>
+          <p className="filter-note">Changes here apply to this search only — your saved account preferences are untouched.</p>
+        </details>
       </div>
       <div className="filter-group">
         <span className="filter-label">Hide dishes containing</span>
@@ -99,6 +104,15 @@ export default function Filters({ filters, onChange }) {
           <p className="filter-note">Dishes with these allergens are hidden completely, including sponsored and group-search results.</p>
         )}
       </div>
+      {filters.blockedIngredients?.length > 0 && (
+        <div className="filter-group">
+          <span className="filter-label">Blocked ingredients</span>
+          <p className="filter-note">Dishes containing {filters.blockedIngredients.join(", ")} are hidden by default.</p>
+          <Chip active={filters.showBlocked} onClick={() => onChange({ ...filters, showBlocked: !filters.showBlocked })}>
+            Show blocked items anyway
+          </Chip>
+        </div>
+      )}
     </div>
   );
 }
