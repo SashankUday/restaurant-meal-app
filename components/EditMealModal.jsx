@@ -11,7 +11,7 @@ function today() {
 // rating. When the entry belongs to a visit, its date and notes are editable too.
 export default function EditMealModal({ meal, dish, onClose, onSaved }) {
   const { user } = useAuth();
-  const [visitDate, setVisitDate] = useState(meal.visit?.visitedAt || meal.visitedAt || today());
+  const [visitDate, setVisitDate] = useState(meal.visit?.visitedAt || today());
   const [notes, setNotes] = useState(meal.visit?.notes || "");
   const [savingVisit, setSavingVisit] = useState(false);
   const [visitError, setVisitError] = useState("");
@@ -62,7 +62,6 @@ export default function EditMealModal({ meal, dish, onClose, onSaved }) {
           <RatingForm
             dish={dish}
             dishId={meal.dish.id}
-            visitedAt={meal.visit?.visitedAt || meal.visitedAt}
             heading="Edit your rating"
             onSaved={() => { onSaved?.(); onClose(); }}
           />

@@ -7,14 +7,7 @@ import { formatPrice, RATING_TAGS } from "../lib/constants.js";
 import { validatePhotoSelection } from "../lib/image.js";
 import AccountSignIn from "./AccountSignIn.jsx";
 import Chip from "./Chip.jsx";
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function cleanCustomTag(tag) {
-  return tag.trim().replace(/\s+/g, " ").slice(0, 30);
-}
+import TagPicker from "./TagPicker.jsx";
 
 export default function MealForm({ dish, onSaved, initialDishId = null, quick = false }) {
   const { user } = useAuth();
@@ -32,9 +25,7 @@ export default function MealForm({ dish, onSaved, initialDishId = null, quick = 
   const [score, setScore] = useState(null);
   const [wouldOrderAgain, setWouldOrderAgain] = useState(null);
   const [tags, setTags] = useState([]);
-  const [customTag, setCustomTag] = useState("");
   const [comment, setComment] = useState("");
-  const [visitedAt, setVisitedAt] = useState(today());
   const [files, setFiles] = useState([]);
   const [photosPrivate, setPhotosPrivate] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -60,7 +51,6 @@ export default function MealForm({ dish, onSaved, initialDishId = null, quick = 
       setScore(rating.score);
       setTags(rating.tags);
       setComment(rating.comment);
-      setVisitedAt(rating.visitedAt || today());
       setWouldOrderAgain(rating.wouldOrderAgain);
       setSelectedDishId((current) => {
         if (current) return current;
@@ -75,20 +65,6 @@ export default function MealForm({ dish, onSaved, initialDishId = null, quick = 
   const selectedBranch = branchOptions.find((branch) => String(branch.dishId) === selectedDishId);
 
   if (!user) return <AccountSignIn compact />;
-
-  function toggleTag(tag) {
-    setTags((current) => {
-      if (current.includes(tag)) return current.filter((item) => item !== tag);
-      return current.length < 8 ? [...current, tag] : current;
-    });
-  }
-
-  function addCustomTag() {
-    const nextTag = cleanCustomTag(customTag);
-    if (!nextTag || tags.some((tag) => tag.toLowerCase() === nextTag.toLowerCase()) || tags.length >= 8) return;
-    setTags((current) => [...current, nextTag]);
-    setCustomTag("");
-  }
 
   function chooseFiles(event) {
     const selection = Array.from(event.target.files || []);
@@ -118,7 +94,6 @@ export default function MealForm({ dish, onSaved, initialDishId = null, quick = 
         score,
         tags: quick ? [] : tags,
         comment: quick ? "" : comment,
-        visitedAt: quick ? today() : visitedAt,
         photos: quick ? [] : files,
         photosPrivate,
         wouldOrderAgain,
@@ -174,21 +149,6 @@ export default function MealForm({ dish, onSaved, initialDishId = null, quick = 
       )}
       {!branchOptions.length && <p className="form-error" role="alert">This dish is not currently offered at a selectable branch.</p>}
 
-      {!quick && (
-        <>
-          <label className="field-label" htmlFor={`visited-${dish.id}`}>Visit date</label>
-          <input
-            id={`visited-${dish.id}`}
-            className="text-input date-input"
-            type="date"
-            max={today()}
-            value={visitedAt}
-            onChange={(event) => setVisitedAt(event.target.value)}
-            required
-          />
-        </>
-      )}
-
       <fieldset className="fieldset-reset">
         <legend className="section-label">Your score</legend>
         <div className="score-grid">
@@ -219,34 +179,7 @@ export default function MealForm({ dish, onSaved, initialDishId = null, quick = 
 
       {!quick && (
         <>
-          <fieldset className="fieldset-reset">
-            <legend className="section-label">Describe it <span className="optional">up to 8</span></legend>
-            <div className="rate-tags">
-              {RATING_TAGS.map((tag) => (
-                <Chip key={tag} active={tags.includes(tag)} onClick={() => toggleTag(tag)}>{tag}</Chip>
-              ))}
-              {tags.filter((tag) => !RATING_TAGS.includes(tag)).map((tag) => (
-                <Chip key={tag} active onClick={() => toggleTag(tag)}>{tag} ×</Chip>
-              ))}
-            </div>
-            <div className="custom-tag-row">
-              <input
-                className="text-input"
-                value={customTag}
-                maxLength={30}
-                onChange={(event) => setCustomTag(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    addCustomTag();
-                  }
-                }}
-                placeholder="Add your own descriptor"
-                aria-label="Custom descriptor tag"
-              />
-              <button type="button" className="btn-quiet" onClick={addCustomTag} disabled={!customTag.trim() || tags.length >= 8}>Add tag</button>
-            </div>
-          </fieldset>
+          <TagPicker presetTags={RATING_TAGS} tags={tags} onChange={setTags} label="Describe it" ariaLabel="Custom descriptor tag" />
 
           <label className="field-label" htmlFor={`comment-${dish.id}`}>Comment <span className="optional">optional</span></label>
           <textarea

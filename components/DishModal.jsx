@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useAppData } from "../context/AppDataContext.jsx";
 import { availableBranchesForDish } from "../lib/catalog.js";
 import { attachVisitToRating, createVisit, fetchDishPhotos } from "../lib/api.js";
-import { formatDishPrice, formatPrice } from "../lib/constants.js";
+import { CHEFS_SPECIAL_BADGE, formatDishPrice, formatPrice } from "../lib/constants.js";
 import AccountSignIn from "./AccountSignIn.jsx";
 import DishInformation from "./DishInformation.jsx";
 import PlateScore from "./PlateScore.jsx";
@@ -22,7 +22,6 @@ export default function DishModal({ dish, onClose, initialDishId = null, initial
   const [viewTab, setViewTab] = useState("overview");
   const [photos, setPhotos] = useState([]);
   const [visitId, setVisitId] = useState(null);
-  const [visitDate, setVisitDate] = useState(today());
   const [rateQueue, setRateQueue] = useState([]);
   const [rateIndex, setRateIndex] = useState(0);
   const [lastRating, setLastRating] = useState(null);
@@ -60,7 +59,6 @@ export default function DishModal({ dish, onClose, initialDishId = null, initial
   }
 
   function handleVisitSubmit(visitInfo, dishIds) {
-    setVisitDate(visitInfo.visitedAt);
     // The orchestrator owns visit creation so it can queue the rating step.
     createVisit({
       userId: user.id,
@@ -147,7 +145,6 @@ export default function DishModal({ dish, onClose, initialDishId = null, initial
             dish={activeRate.dish}
             dishId={activeRate.dishId}
             visitId={visitId}
-            visitedAt={visitId ? visitDate : undefined}
             heading={visitId ? "Rate your visit" : "Rate this dish"}
             progressLabel={rateQueue.length > 1 ? `${rateIndex + 1} of ${rateQueue.length}` : ""}
             onSaved={handleRatingSaved}
@@ -176,6 +173,7 @@ export default function DishModal({ dish, onClose, initialDishId = null, initial
                   )}
                 </p>
                 <h2 className="modal-title" id="dish-modal-title">{dish.name}</h2>
+                {dish.badges?.includes(CHEFS_SPECIAL_BADGE) && <span className="tag tag-badge">★ Chef's special</span>}
               </div>
               <PlateScore score={dish.score} size={72} ratingCount={dish.ratingCount} />
             </div>
