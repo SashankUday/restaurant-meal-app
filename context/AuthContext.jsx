@@ -3,6 +3,7 @@ import { isSupabaseConfigured, supabase } from "../supabase.js";
 
 const AuthContext = createContext(null);
 const ACTIVE_EMAIL_KEY = "plate.active-email";
+const ADMIN_EMAIL = "sashankuday@gmail.com";
 
 function normaliseEmail(email) {
   return email.trim().toLowerCase();
@@ -13,7 +14,7 @@ function validEmail(email) {
 }
 
 async function getProfile(userId) {
-  const { data, error } = await supabase.from("profiles").select("id, email, dietary_requirements").eq("id", userId).maybeSingle();
+  const { data, error } = await supabase.from("profiles").select("id, email, dietary_requirements, blocked_ingredients, can_edit").eq("id", userId).maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -70,7 +71,7 @@ export function AuthProvider({ children }) {
       }
 
       if (!existing) {
-        const created = await supabase.from("profiles").insert({ id: authUser.id, email }).select("id, email, dietary_requirements").single();
+        const created = await supabase.from("profiles").insert({ id: authUser.id, email }).select("id, email, dietary_requirements, blocked_ingredients, can_edit").single();
         if (created.error) {
           if (created.error.code === "23505") {
             throw new Error("That email belongs to a session on another browser. Cross-device sign-in will be available when magic links are enabled.");
@@ -98,7 +99,7 @@ export function AuthProvider({ children }) {
       .from("profiles")
       .update(changes)
       .eq("id", user.id)
-      .select("id, email, dietary_requirements")
+      .select("id, email, dietary_requirements, blocked_ingredients, can_edit")
       .single();
     if (error) throw error;
     setUser(data);
@@ -109,6 +110,8 @@ export function AuthProvider({ children }) {
     user,
     loading,
     isConfigured: isSupabaseConfigured,
+    canEdit: Boolean(user?.can_edit),
+    isAdmin: user?.email === ADMIN_EMAIL,
     signIn,
     signOut,
     updateProfile,
