@@ -12,6 +12,7 @@ export default function AppShell() {
           <NavLink to="/" end>Find a dish</NavLink>
           <NavLink to="/group">Group search</NavLink>
           <NavLink to="/me">My meals</NavLink>
+          <NavLink to="/account">Account</NavLink>
         </nav>
         <span className="city">Oxford</span>
       </header>

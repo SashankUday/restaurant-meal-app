@@ -7,14 +7,18 @@ import { fetchMealHistory } from "../lib/api.js";
 import { tokenizeQuery } from "../lib/search.js";
 import AccountSignIn from "../components/AccountSignIn.jsx";
 import { LoadingState } from "../components/AsyncState.jsx";
+import EditMealModal from "../components/EditMealModal.jsx";
 import MealForm from "../components/MealForm.jsx";
 import PlateScore from "../components/PlateScore.jsx";
+import SearchableSelect from "../components/SearchableSelect.jsx";
+
+const DISH_GROUP_ORDER = ["Mains", "Sides & drinks"];
 
 function formatVisitDate(value) {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(new Date(`${value}T12:00:00`));
 }
 
-function MealHistoryCard({ meal }) {
+function MealHistoryCard({ meal, onEdit }) {
   return (
     <article className="meal-history-card">
       <div className="meal-history-main">
@@ -23,8 +27,12 @@ function MealHistoryCard({ meal }) {
           <h3><Link to={`/restaurant/${meal.restaurant.id}?dish=${meal.dish.id}`}>{meal.dish.name}</Link></h3>
           <p className="dish-where"><Link to={`/restaurant/${meal.restaurant.id}`}>{meal.restaurant.name}</Link> · {meal.restaurant.area}</p>
         </div>
-        <PlateScore score={meal.score} />
+        <div className="meal-history-score">
+          <PlateScore score={meal.score} />
+          <button type="button" className="btn-quiet meal-edit-btn" onClick={() => onEdit(meal)}>Edit</button>
+        </div>
       </div>
+      {meal.visit?.notes && <p className="meal-comment visit-note">{meal.visit.notes}</p>}
       {meal.comment && <p className="meal-comment">“{meal.comment}”</p>}
       {meal.wouldOrderAgain !== null && (
         <div className="meal-breakdown-row">
@@ -52,6 +60,7 @@ export default function MePage() {
   const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
   const [selectedDishId, setSelectedDishId] = useState("");
   const [mealSaved, setMealSaved] = useState(false);
+  const [editingMeal, setEditingMeal] = useState(null);
 
   const loadHistory = useCallback(async () => {
     if (!user) return;
@@ -130,10 +139,18 @@ export default function MePage() {
           </label>
           <label>
             <span className="field-label">Dish</span>
-            <select className="select-input" value={selectedDishId} disabled={!selectedRestaurantId} onChange={(event) => { setSelectedDishId(event.target.value); setMealSaved(false); }}>
-              <option value="">Choose a dish</option>
-              {restaurantDishes.map((dish) => <option key={dish.id} value={dish.id}>{dish.name}</option>)}
-            </select>
+            <SearchableSelect
+              value={selectedDishId}
+              disabled={!selectedRestaurantId}
+              placeholder="Search this menu"
+              groupOrder={DISH_GROUP_ORDER}
+              onChange={(next) => { setSelectedDishId(String(next)); setMealSaved(false); }}
+              options={restaurantDishes.map((dish) => ({
+                value: dish.id,
+                label: dish.name,
+                group: dish.course === "mains" ? "Mains" : "Sides & drinks",
+              }))}
+            />
           </label>
         </div>
         {selectedDish && !mealSaved && (
@@ -170,7 +187,7 @@ export default function MePage() {
         {historyLoading ? <LoadingState label="Loading your visits…" /> : historyError ? (
           <div className="status-card status-error"><p>{historyError}</p><button type="button" className="btn-quiet" onClick={loadHistory}>Try again</button></div>
         ) : filteredMeals.length ? (
-          <div className="history-list">{filteredMeals.map((meal) => <MealHistoryCard key={meal.id} meal={meal} />)}</div>
+          <div className="history-list">{filteredMeals.map((meal) => <MealHistoryCard key={meal.id} meal={meal} onEdit={setEditingMeal} />)}</div>
         ) : (
           <div className="empty">
             <p className="empty-title">{meals.length ? "No past meals match that search." : "Your first meal is waiting."}</p>
@@ -178,6 +195,15 @@ export default function MePage() {
           </div>
         )}
       </section>
+
+      {editingMeal && (
+        <EditMealModal
+          meal={editingMeal}
+          dish={dishes.find((dish) => dish.id === editingMeal.dish.id)}
+          onClose={() => setEditingMeal(null)}
+          onSaved={loadHistory}
+        />
+      )}
     </main>
   );
 }

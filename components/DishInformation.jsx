@@ -1,5 +1,9 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { availableBranchesForDish, isDishCurrentlyAvailable } from "../lib/catalog.js";
 import { formatCourse, formatDishPrice, formatPrice } from "../lib/constants.js";
+import { fetchDishFlagCounts } from "../lib/api.js";
+import DishCorrection from "./DishCorrection.jsx";
 
 const NUTRIENT_LABELS = {
   calories_kcal: ["Calories", "kcal"],
@@ -45,6 +49,11 @@ function EmptyInfo({ children = "Not supplied by the restaurant yet." }) {
   return <p className="info-empty">{children}</p>;
 }
 
+function CommunityMark({ entry }) {
+  if (!entry?.count) return null;
+  return <span className="community-mark" title="This value has community corrections">Edited by the community · {entry.count}</span>;
+}
+
 function InfoChips({ values, tone = "" }) {
   if (!hasValue(values)) return <EmptyInfo />;
   return <div className="tag-row info-chip-row">{values.map((value) => <span className={`tag ${tone}`} key={value}>{value}</span>)}</div>;
@@ -65,6 +74,18 @@ function MetadataRows({ value }) {
 }
 
 export default function DishInformation({ dish }) {
+  const [flagCounts, setFlagCounts] = useState({});
+  // Corrections are branch-level, so they only apply to a specific branch dish
+  // (not the grouped canonical view, which has no single dish_id).
+  const canCorrect = !dish.isGrouped && dish.id != null;
+
+  useEffect(() => {
+    if (!canCorrect) { setFlagCounts({}); return; }
+    let cancelled = false;
+    fetchDishFlagCounts(dish.id).then((counts) => { if (!cancelled) setFlagCounts(counts); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [dish.id, canCorrect]);
+
   const nutritionEntries = Object.entries(dish.nutrition || {}).filter(([key, value]) => key !== "micronutrients" && hasValue(value));
   const micronutrients = dish.nutrition?.micronutrients || {};
   const availability = dish.availability || {};
@@ -83,11 +104,28 @@ export default function DishInformation({ dish }) {
 
       <section className="info-section">
         <h3>At a glance</h3>
+        {canCorrect && (
+          <p className="info-name-correction">
+            <span>Dish name: <strong>{dish.name}</strong></span>
+            <CommunityMark entry={flagCounts.name} />
+            <DishCorrection dishId={dish.id} attribute="name" />
+          </p>
+        )}
         <dl className="info-grid">
           <div><dt>Menu section</dt><dd>{formatCourse(dish.course)}</dd></div>
           <div><dt>Meal occasion</dt><dd>{dish.mealOccasions?.length ? dish.mealOccasions.join(", ") : "Not supplied"}</dd></div>
-          <div><dt>Price</dt><dd>{formatDishPrice(dish)}</dd></div>
-          <div><dt>Brand</dt><dd>{dish.brandName || dish.restaurantName || "Not supplied"}</dd></div>
+          <div>
+            <dt>Price</dt>
+            <dd>{formatDishPrice(dish)}<CommunityMark entry={flagCounts.price} />{canCorrect && <DishCorrection dishId={dish.id} attribute="price" />}</dd>
+          </div>
+          <div>
+            <dt>Brand</dt>
+            <dd>
+              {!dish.isGrouped && dish.restaurantId ? (
+                <Link to={`/restaurant/${dish.restaurantId}`}>{dish.brandName || dish.restaurantName}</Link>
+              ) : (dish.brandName || dish.restaurantName || "Not supplied")}
+            </dd>
+          </div>
           {dish.isGrouped ? (
             <div><dt>Locations</dt><dd>{locationCount} in {dish.city}</dd></div>
           ) : (
@@ -95,11 +133,17 @@ export default function DishInformation({ dish }) {
           )}
           <div><dt>Location</dt><dd>{dish.isGrouped ? dish.city : [dish.area, dish.city].filter(Boolean).join(", ") || "Not supplied"}</dd></div>
           <div><dt>Currently available</dt><dd>{currentlyAvailable ? "Yes" : "No"}</dd></div>
-          <div><dt>Canonical dish ID</dt><dd>{dish.canonicalDishId}</dd></div>
-          {dish.marketCode && <div><dt>Market</dt><dd>{dish.marketCode}</dd></div>}
-          {dish.canonicalVersion != null && <div><dt>Canonical version</dt><dd>{dish.canonicalVersion}</dd></div>}
-          {dish.canonicalReviewStatus && <div><dt>Review status</dt><dd>{labelFor(dish.canonicalReviewStatus)}</dd></div>}
-          {!dish.isGrouped && <div><dt>Branch dish ID</dt><dd>{dish.id}</dd></div>}
+          {dish.isGrouped ? (
+            <>
+              <div><dt>{dish.city} score</dt><dd>{Number(dish.cityScore || 0).toFixed(1)} · {Number(dish.cityRatingCount || 0).toLocaleString()} ratings</dd></div>
+              <div><dt>Overall score</dt><dd>{Number(dish.overallScore || 0).toFixed(1)} · {Number(dish.overallRatingCount || 0).toLocaleString()} ratings</dd></div>
+            </>
+          ) : (
+            <>
+              <div><dt>Repeat-order rate</dt><dd>{dish.repeatOrderRate == null ? "Not enough data" : `${Math.round(dish.repeatOrderRate * 100)}%`}</dd></div>
+              <div><dt>Diner photos</dt><dd>{Number(dish.userPhotoCount || 0).toLocaleString()}</dd></div>
+            </>
+          )}
         </dl>
       </section>
 
@@ -130,33 +174,20 @@ export default function DishInformation({ dish }) {
       <details className="info-disclosure" open>
         <summary>Dietary and allergen information</summary>
         <div className="info-disclosure-body">
-          <div className="info-copy-block"><h4>Diets</h4><InfoChips values={dish.diets} tone="tag-diet" /></div>
-          <div className="info-copy-block"><h4>Official allergens</h4><InfoChips values={dish.allergens} /></div>
+          <div className="info-copy-block">
+            <h4>Diets <CommunityMark entry={flagCounts.diets} />{canCorrect && <DishCorrection dishId={dish.id} attribute="diets" currentValues={dish.diets} />}</h4>
+            <InfoChips values={dish.diets} tone="tag-diet" />
+          </div>
+          <div className="info-copy-block">
+            <h4>Official allergens <CommunityMark entry={flagCounts.allergens} />{canCorrect && <DishCorrection dishId={dish.id} attribute="allergens" currentValues={dish.allergens} />}</h4>
+            <InfoChips values={dish.allergens} />
+          </div>
           <div className="info-copy-block">
             <h4>Allergen verification</h4>
             <p>{dish.allergensVerified ? "Marked as verified in the restaurant data." : "Not marked as verified in the restaurant data."}</p>
           </div>
           <MetadataRows value={dish.allergenDetails} />
           <p className="allergen-note">Allergen information is provided by the restaurant. Always confirm ingredients, “may contain” warnings and preparation practices with staff before ordering.</p>
-        </div>
-      </details>
-
-      <details className="info-disclosure">
-        <summary>Community experience</summary>
-        <div className="info-disclosure-body">
-          <dl className="metadata-rows">
-            {dish.isGrouped ? (
-              <>
-                <div><dt>{dish.city} score</dt><dd>{Number(dish.cityScore || 0).toFixed(1)} from {Number(dish.cityRatingCount || 0).toLocaleString()} ratings</dd></div>
-                <div><dt>Overall score</dt><dd>{Number(dish.overallScore || 0).toFixed(1)} from {Number(dish.overallRatingCount || 0).toLocaleString()} ratings</dd></div>
-              </>
-            ) : (
-              <>
-                <div><dt>Repeat-order rate</dt><dd>{dish.repeatOrderRate == null ? "Not enough data" : `${Math.round(dish.repeatOrderRate * 100)}%`}</dd></div>
-                <div><dt>User photos</dt><dd>{Number(dish.userPhotoCount || 0).toLocaleString()}</dd></div>
-              </>
-            )}
-          </dl>
         </div>
       </details>
 
@@ -177,15 +208,6 @@ export default function DishInformation({ dish }) {
           ) : <MetadataRows value={availability} />}
         </div>
       </details>
-
-      {hasValue(dish.dataSources) && (
-        <details className="info-disclosure">
-          <summary>Sources and verification</summary>
-          <div className="info-disclosure-body">
-            <MetadataRows value={dish.dataSources} />
-          </div>
-        </details>
-      )}
 
       <p className="data-freshness">Added {formatDate(dish.createdAt)} · Last updated {formatDate(dish.updatedAt)}</p>
     </div>

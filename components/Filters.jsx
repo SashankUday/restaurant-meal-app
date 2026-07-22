@@ -7,8 +7,37 @@ function toggleValue(values, value) {
 }
 
 export default function Filters({ filters, onChange }) {
+  const constraints = filters.constraints || {};
+  function setConstraint(key, value) {
+    const next = { ...constraints };
+    if (value === "" || value === null || value === undefined) delete next[key];
+    else next[key] = value;
+    onChange({ ...filters, constraints: next });
+  }
+
   return (
     <div className="filter-panel">
+      <div className="filter-group">
+        <span className="filter-label">Price &amp; calories</span>
+        <div className="constraint-row">
+          <label className="constraint-field">
+            <span>Min price (£)</span>
+            <input className="text-input" type="number" min="0" step="0.5" inputMode="decimal"
+              value={constraints.minPrice ?? ""} onChange={(event) => setConstraint("minPrice", event.target.value)} placeholder="0" />
+          </label>
+          <label className="constraint-field">
+            <span>Max price (£)</span>
+            <input className="text-input" type="number" min="0" step="0.5" inputMode="decimal"
+              value={constraints.maxPrice ?? ""} onChange={(event) => setConstraint("maxPrice", event.target.value)} placeholder="Any" />
+          </label>
+          <label className="constraint-field">
+            <span>Max calories</span>
+            <input className="text-input" type="number" min="0" step="50" inputMode="numeric"
+              value={constraints.maxCalories ?? ""} onChange={(event) => setConstraint("maxCalories", event.target.value)} placeholder="Any" />
+          </label>
+        </div>
+        <p className="filter-note">Dishes without the relevant figure are hidden when a limit is set.</p>
+      </div>
       <div className="filter-group">
         <span className="filter-label">When are you eating?</span>
         <div className="chip-row">

@@ -1,4 +1,12 @@
-export default function PlateScore({ score = 0, size = 56 }) {
+export default function PlateScore({ score = 0, size = 56, ratingCount }) {
+  if (ratingCount === 0) {
+    return (
+      <span className="plate-score-empty" style={{ minWidth: size }} aria-label="Not yet rated">
+        Not yet rated
+      </span>
+    );
+  }
+
   const radius = (size - 8) / 2;
   const circumference = 2 * Math.PI * radius;
   const boundedScore = Math.max(0, Math.min(10, Number(score) || 0));
